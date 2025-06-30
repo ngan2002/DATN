@@ -40,90 +40,14 @@ namespace DATN.Rooms
 
         }
         [TestMethod]
-
-        //public void TestRoom1()
-        //{
-        //    // Thiết lập dữ liệu đầu vào
-        //    string roomNumber = "21201";          // Số phòng cần thêm
-        //    string roomType = "VIP";             // Loại phòng
-        //    string price = "1500000";            // Giá phòng
-        //    string status = "Trống";             // Trạng thái phòng
-        //    int maxRooms = 50;                   // Giới hạn số phòng tối đa
-
-        //    // Ghi nhận số lượng phòng trước khi thêm
-        //    int totalBefore = room.CountAllRooms();
-        //    Console.WriteLine($"Tổng số phòng hiện tại trong hệ thống: {totalBefore}");
-        //    // Thực hiện thao tác thêm phòng
-        //    room.RoomApplication(roomNumber, roomType, price, status);
-        //    IWebElement alert = wait.Until(d =>
-        //    {
-        //        try
-        //        {
-        //            return d.FindElement(By.CssSelector("div.alert.alert-danger"));
-        //        }
-        //        catch
-        //        {
-        //            return null;
-        //        }
-        //    });
-
-        //    // Đảm bảo có hiển thị thông báo sau khi thêm phòng
-        //    Assert.IsNotNull(alert, "Không có thông báo nào được hiển thị sau khi thêm phòng.");
-        //    string alertText = alert.Text.Trim();
-
-        //    if (totalBefore >= maxRooms)
-        //    {
-        //        string expectedAlert = $"Không thể thêm phòng. Đã đạt giới hạn tối đa ({maxRooms} phòng).";
-
-        //        Assert.AreEqual(expectedAlert, alertText,
-        //            $"Thông báo lỗi không đúng. Mong đợi: '{expectedAlert}', thực tế: '{alertText}'");
-
-        //        int totalAfter = room.CountAllRooms();
-        //        Assert.AreEqual(totalBefore, totalAfter, "Số lượng phòng bị thay đổi dù đã đạt giới hạn.");
-
-        //        Console.WriteLine($"Hệ thống không cho phép thêm vượt quá giới hạn số phòng ({maxRooms} phòng).");
-        //    }
-        //    else
-        //    {
-
-        //        Console.WriteLine("Tổng số phòng chưa vượt quá giới hạn -> Được phép thêm số phòng ");
-
-        //        // Kiểm tra thông báo thành công
-        //        Assert.IsTrue(alertText.Contains("Thêm phòng thành công"),
-        //            "Không hiển thị thông báo thành công sau khi thêm phòng.");
-
-        //        // Kiểm tra sự tồn tại của phòng vừa thêm
-        //        Assert.IsTrue(room.IsRoomExists(roomNumber), $" Không tìm thấy phòng [{roomNumber}] trong danh sách.");
-        //        Console.WriteLine($" Phòng [{roomNumber}] đã xuất hiện trong danh sách.");
-
-        //        // Kiểm tra thông tin chi tiết phòng đã thêm
-        //        var details = room.GetRoomDetails(roomNumber);
-        //        Assert.IsNotNull(details, "Không lấy được thông tin chi tiết của phòng.");
-
-        //        Assert.AreEqual(roomNumber, details.RoomNumber, " Số phòng không khớp.");
-        //        Assert.AreEqual(roomType, details.RoomType, " Loại phòng không khớp.");
-        //        Assert.AreEqual(price, details.Price.Replace(".", ""), " Giá phòng không khớp."); // Nếu giá hiển thị có dấu chấm
-        //        Assert.AreEqual(status, details.Status, " Trạng thái phòng không khớp.");
-
-        //        // Kiểm tra phòng có xuất hiện trong combobox đặt phòng
-        //        room.OpenBookingPage();
-        //        var select = wait.Until(d => d.FindElement(By.Id("room_id")));
-        //        var options = new SelectElement(select).Options;
-        //        bool existsInDropdown = options.Any(o => o.Text.Trim().Contains(roomNumber));
-        //        Assert.IsTrue(existsInDropdown, $"Phòng [{roomNumber}] không xuất hiện trong combobox đặt phòng.");
-
-
-        //        Console.WriteLine("TestRoom1: Passed - Thêm phòng thành công và hiển thị đầy đủ.");
-        //    }
-        //}
         public void TestRoom1()
         {
             // Thiết lập dữ liệu đầu vào
-            string roomNumber = "21211";          // Số phòng cần thêm
-            string roomType = "VIP";             // Loại phòng
-            string price = "1500000";            // Giá phòng
-            string status = "Trống";             // Trạng thái phòng          
-            // Thực hiện thao tác thêm phòng
+            string roomNumber = "21211";          
+            string roomType = "VIP";           
+            string price = "1500000";           
+            string status = "Trống";                  
+        
             room.RoomApplication(roomNumber, roomType, price, status);
             var successElement = wait.Until(driver =>
             {
