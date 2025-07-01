@@ -1,4 +1,4 @@
-﻿using OpenQA.Selenium.Support.UI;
+using OpenQA.Selenium.Support.UI;
 using OpenQA.Selenium;
 using System;
 using System.Collections.Generic;
@@ -262,6 +262,63 @@ namespace DATN.Customer
             }
 
             return totalCount;
+        }
+        /// Mở Form đặt phòng
+        public void OpenBookingPage()
+        {
+            OpenSidebarIfNeeded();
+            var BookingMenu = driver.FindElement(By.CssSelector("#sidebarMenu .nav-link[href='bookings.php']"));
+            BookingMenu.Click();
+            var BtnAddBooking = driver.FindElement(By.CssSelector("button.btn.btn-primary"));
+            BtnAddBooking.Click();
+
+        }
+        /// <summary>
+        /// Đóng form thêm khách hàng nếu đang mở
+        /// </summary>
+        public void CloseForm1()
+        {
+            try
+            {
+                var modal = driver.FindElement(By.Id("addCustomerModal"));
+                if (modal.Displayed && modal.GetAttribute("class").Contains("show"))
+                {
+                    // Đóng form bằng nút Đóng
+                    BtnCloseAddModal.Click();
+
+                    // Chờ modal đóng hẳn
+                    wait.Until(d => !modal.GetAttribute("class").Contains("show"));
+                }
+            }
+            catch (NoSuchElementException)
+            {
+                Console.WriteLine("Modal thêm khách hàng không tồn tại hoặc đã đóng.");
+            }
+        }
+
+        /// <summary>
+        /// Nhập dữ liệu vào form rồi đóng form (không submit)
+        /// </summary>
+        public void CloseForm2(string cccd, string fullName, string phone, string email, string address)
+        {
+            TxtCCCD.Clear();
+            TxtCCCD.SendKeys(cccd);
+
+            TxtFullName.Clear();
+            TxtFullName.SendKeys(fullName);
+
+            TxtPhone.Clear();
+            TxtPhone.SendKeys(phone);
+
+            TxtEmail.Clear();
+            TxtEmail.SendKeys(email);
+
+            TxtAddress.Clear();
+            TxtAddress.SendKeys(address);
+
+            BtnCloseAddModal.Click();
+
+            wait.Until(d => !d.FindElement(By.Id("addCustomerModal")).GetAttribute("class").Contains("show"));
         }
 
 
