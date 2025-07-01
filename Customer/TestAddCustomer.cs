@@ -1,4 +1,4 @@
-﻿using DATN.Rooms;
+using DATN.Rooms;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using OpenQA.Selenium.Chrome;
 using OpenQA.Selenium.Support.UI;
@@ -40,10 +40,10 @@ namespace DATN.Customer
         public void TestAddCustomer1()
         {
             // Thiết lập dữ liệu đầu vào
-            string cccd = "2021050751";               
-            string fullName = "Nguyễn Văn A";            
+            string cccd = "02021050764";               
+            string fullName = "Nguyễn Văn B";            
             string phone = "0912345678";                 
-            string email = "nguyenvana12@gmail.com";       
+            string email = "nguyenvana2@gmail.com";       
             string address = "123 Nguyễn Trãi, Hà Nội";  
 
             // Mở form thêm khách hàng
@@ -84,13 +84,19 @@ namespace DATN.Customer
             Assert.AreEqual(email, details.Email, "Email không khớp.");
             Assert.AreEqual(address, details.Address, "Địa chỉ không khớp.");
 
+            customer.OpenBookingPage();
+            var select = wait.Until(d => d.FindElement(By.Id("cccd")));
+            var exists = new SelectElement(select).Options.Any(o => o.Text.Contains(cccd));
+            Assert.IsTrue(exists, $" Khách hàng [{cccd}] không có trong combobox đặt phòng.");
+            Console.WriteLine($"Khách hàng [{cccd}] đã có trong combobox đặt phòng.");
+
             Console.WriteLine("TestAddCustomer1: PASSED - Thêm khách hàng và kiểm tra thông tin thành công.");
         }
         // CCCD trùng, hợp lệ
         [TestMethod]
         public void TestAddCustomer2()
         {
-            string cccd = "202105075111";
+            string cccd = "02021050751";
             string fullName = "Nguyễn Văn A";
             string phone = "0912345678";
             string email = "test@gmail.com";
@@ -179,10 +185,10 @@ namespace DATN.Customer
             Console.WriteLine("Không có khách hàng nào được thêm vào hệ thống -> Pass");
         }
         [TestMethod]
-        //CCCD =< 10 
+        //CCCD < 10 
         public void TestAddCustomer4()
         {
-            string cccd = "1234";  // Trường hợp bỏ trống
+            string cccd = "012345";  
             string fullName = "Nguyễn Văn A";
             string phone = "0912345678";
             string email = "nguyenvana12@gmail.com";
@@ -224,7 +230,7 @@ namespace DATN.Customer
             Console.WriteLine("Không có khách hàng nào được thêm vào hệ thống -> Pass");
         }
         [TestMethod]
-        //CCCD >= 13 
+        //CCCD > 13 
         public void TestAddCustomer5()
         {
             string cccd = "01212348923581934823";  // Trường hợp bỏ trống
@@ -426,440 +432,831 @@ namespace DATN.Customer
             Console.WriteLine("Không có khách hàng nào được thêm vào hệ thống -> Pass");
 
         }
-        //[TestMethod]
-        //public void TestAddCustomer6()
-        //{
-
-        //    string cccd = "2222";
-        //    string fullName = "test";
-        //    string phone = "test";
-        //    string email = "test@gmail.com";
-        //    string address = "123 Đường ABC, Hà Nội";
-        //    int countBefore = customer.CountAllCustomers();
-        //    // Mở form thêm khách hàng
-        //    customer.OpenAddCustomerSection();
-
-        //    // Thực hiện nhập dữ liệu
-        //    customer.AddCustomer(cccd, fullName, phone, email, address);
-
-        //    // Kiểm tra thông báo lỗi mặc định trình duyệt 
-        //    var cccdField = driver.FindElement(By.Id("phone"));
-        //    string validationMessage = cccdField.GetAttribute("validationMessage");
-
-        //    Assert.AreEqual("Please fill out this field.", validationMessage);
-        //    Console.WriteLine($"Thông báo lỗi: {validationMessage}");
-        //    // Đảm bảo form vẫn đang mở (không submit được)
-        //    bool isModalStillOpen = driver.FindElement(By.Id("addCustomerModal")).GetAttribute("class").Contains("show");
-        //    Assert.IsTrue(isModalStillOpen, "Form đã bị đóng dù dữ liệu không hợp lệ");
-        //    Console.WriteLine("Form vẫn hiển thị sau khi nhập dữ liệu không hợp lệ.");
-
-        //    int countAfter = customer.CountAllCustomers();
-
-        //    // So sánh số lượng phòng để đảm bảo không có phòng mới được thêm
-        //    Assert.AreEqual(countBefore, countAfter, "Hệ thống vẫn thêm phòng mới dù dữ liệu không hợp lệ.");
-        //    Console.WriteLine("Không có khách hàng nào được thêm vào hệ thống -> Pass");
-
-        //}
-        //[TestMethod]
-        //// email sai định dạng
-        //public void TestAddCustomer7()
-        //{
-        //    // Thiết lập dữ liệu đầu vào
-        //    string cccd = "2021";
-        //    string fullName = "Nguyễn Văn A";
-        //    string phone = "0912345678";
-        //    string email = "nguyen";
-        //    string address = "123 Nguyễn Trãi, Hà Nội";
-        //    int countBefore = customer.CountAllCustomers();
-        //    // Mở form thêm khách hàng
-        //    customer.OpenAddCustomerSection();
-
-        //    // Thực hiện thêm khách hàng
-        //    customer.AddCustomer(cccd, fullName, phone, email, address);
-
-        //    // Kiểm tra thông báo lỗi mặc định trình duyệt 
-        //    var cccdField = driver.FindElement(By.Id("email"));
-        //    string validationMessage = cccdField.GetAttribute("validationMessage");
-
-        //    string expected = $"Please include an '@' in the email address. '{email}' is missing an '@'.";
-        //    Assert.AreEqual(expected, validationMessage);
-        //    // Đảm bảo form vẫn đang mở (không submit được)
-        //    bool isModalStillOpen = driver.FindElement(By.Id("addCustomerModal")).GetAttribute("class").Contains("show");
-        //    Assert.IsTrue(isModalStillOpen, "Form đã bị đóng dù dữ liệu không hợp lệ");
-        //    Console.WriteLine("Form vẫn hiển thị sau khi nhập dữ liệu không hợp lệ.");
-
-        //    int countAfter = customer.CountAllCustomers();
-
-        //    // So sánh số lượng phòng để đảm bảo không có phòng mới được thêm
-        //    Assert.AreEqual(countBefore, countAfter, "Hệ thống vẫn thêm phòng mới dù dữ liệu không hợp lệ.");
-        //    Console.WriteLine("Không có khách hàng nào được thêm vào hệ thống -> Pass");
-        //}
-        //[TestMethod]
-        //public void TestAddCustomer8()
-        //{
-        //    // 1. Thiết lập dữ liệu đầu vào
-        //    string cccd = "12"; // Giả định đã tồn tại
-        //    string fullName = ""; // Bỏ trống fullname để trigger HTML5 validation
-        //    string phone = "0912345678";
-        //    string email = "nguyen";
-        //    string address = "123 Nguyễn Trãi, Hà Nội";
-
-        //    int countBefore = customer.CountAllCustomers();
-
-        //    // 2. Mở form thêm khách hàng
-        //    customer.OpenAddCustomerSection();
-
-        //    // 3. Nhập và submit form
-        //    customer.AddCustomer(cccd, fullName, phone, email, address);
-
-        //    // 4. Kiểm tra lỗi HTML5 tại trường full_name
-        //    var fullNameInput = driver.FindElement(By.Id("full_name"));
-        //    string validationMessage = fullNameInput.GetAttribute("validationMessage");
-        //    Assert.AreEqual("Please fill out this field.", validationMessage);
-        //    Console.WriteLine($"Thông báo lỗi HTML5 tại 'full_name': {validationMessage}");
-
-        //    // 5. Kiểm tra form vẫn đang mở
-        //    bool isModalStillOpen = driver.FindElement(By.Id("addCustomerModal"))
-        //        .GetAttribute("class").Contains("show");
-        //    Assert.IsTrue(isModalStillOpen, "Form đã bị đóng dù dữ liệu không hợp lệ.");
-        //    Console.WriteLine("Form vẫn hiển thị sau khi nhập dữ liệu không hợp lệ.");
-
-        //    // 6. Kiểm tra không có khách hàng nào được thêm
-        //    int countAfter = customer.CountAllCustomers();
-        //    Assert.AreEqual(countBefore, countAfter, "Hệ thống vẫn thêm khách hàng dù dữ liệu không hợp lệ.");
-
-        //    // 7. Kiểm tra không có alert vì form bị chặn trước khi submit
-        //    var alerts = driver.FindElements(By.CssSelector("div.alert.alert-danger"))
-        //        .Where(a => a.Displayed && !string.IsNullOrWhiteSpace(a.Text)).ToList();
-
-        //    Assert.AreEqual(0, alerts.Count, "Không nên có alert vì trình duyệt đã chặn submit.");
-        //    Console.WriteLine("Không có alert lỗi hiển thị (đúng do bị HTML5 chặn).");
-
-        //    // 8. Đảm bảo thông tin khách hàng có sẵn không bị ghi đè
-        //    var customerAfter = customer.GetCustomerDetails(cccd);
-        //    Assert.IsNotNull(customerAfter, $"Không tìm thấy khách hàng [{cccd}] sau khi test.");
-
-        //    // So sánh với dữ liệu gốc (giả định đã tồn tại từ trước)
-        //    Assert.AreNotEqual("", customerAfter.FullName, "Tên khách hàng bị ghi đè.");
-        //    Assert.AreNotEqual(phone, customerAfter.Phone, "Số điện thoại bị ghi đè.");
-        //    Assert.AreNotEqual(address, customerAfter.Address, "Địa chỉ bị ghi đè.");
-        //    Console.WriteLine("Dữ liệu khách hàng không bị thay đổi -> PASS");
-        //}
-
-
-        //[TestMethod]
-        //// CCCD trùng, , fullname trống
-        //public void TestAddCustomer9()
-        //{
-        //    // 1. Thiết lập dữ liệu đầu vào
-        //    string cccd = "12"; // Giả định đã tồn tại
-        //    string fullName = "Trang"; 
-        //    string phone = "";
-        //    string email = "nguyen";
-        //    string address = "123 Nguyễn Trãi, Hà Nội";
-
-        //    int countBefore = customer.CountAllCustomers();
-
-        //    // 2. Mở form thêm khách hàng
-        //    customer.OpenAddCustomerSection();
-
-        //    // 3. Nhập và submit form
-        //    customer.AddCustomer(cccd, fullName, phone, email, address);
-
-        //    // 4. Kiểm tra lỗi HTML5 tại trường full_name
-        //    var phoneInput = driver.FindElement(By.Id("phone"));
-        //    string validationMessage = phoneInput.GetAttribute("validationMessage");
-        //    Assert.AreEqual("Please fill out this field.", validationMessage);
-        //    Console.WriteLine($"Thông báo lỗi HTML5 tại 'full_name': {validationMessage}");
-
-        //    // 5. Kiểm tra form vẫn đang mở
-        //    bool isModalStillOpen = driver.FindElement(By.Id("addCustomerModal"))
-        //        .GetAttribute("class").Contains("show");
-        //    Assert.IsTrue(isModalStillOpen, "Form đã bị đóng dù dữ liệu không hợp lệ.");
-        //    Console.WriteLine("Form vẫn hiển thị sau khi nhập dữ liệu không hợp lệ.");
-
-        //    // 6. Kiểm tra không có khách hàng nào được thêm
-        //    int countAfter = customer.CountAllCustomers();
-        //    Assert.AreEqual(countBefore, countAfter, "Hệ thống vẫn thêm khách hàng dù dữ liệu không hợp lệ.");
-
-        //    // 7. Kiểm tra thông báo lỗi giao diện (nếu có)
-
-        //    var alerts = driver.FindElements(By.CssSelector("div.alert.alert-danger"))
-        //        .Where(a => a.Displayed && !string.IsNullOrWhiteSpace(a.Text)).ToList();
-
-        //    Assert.AreEqual(0, alerts.Count, "Không nên có alert vì trình duyệt đã chặn submit.");
-        //    Console.WriteLine("Không có alert lỗi hiển thị (đúng do bị HTML5 chặn).");
-
-        //    // 8. Đảm bảo thông tin khách hàng vẫn giữ nguyên
-        //    var customerAfter = customer.GetCustomerDetails(cccd);
-        //    Assert.IsNotNull(customerAfter, $"Không tìm thấy khách hàng [{cccd}] sau khi test.");
-
-        //    // So sánh với dữ liệu gốc (giả định đã tồn tại từ trước)
-        //    Assert.AreNotEqual(fullName, customerAfter.FullName, "Tên khách hàng bị ghi đè.");
-        //    Assert.AreNotEqual(phone, customerAfter.Phone, "Số điện thoại bị ghi đè.");
-        //    Assert.AreNotEqual(address, customerAfter.Address, "Địa chỉ bị ghi đè.");
-        //    Console.WriteLine("Dữ liệu khách hàng không bị thay đổi -> PASS");
-        //}
-        //[TestMethod]
-        //public void TestAddCustomer10()
-        //{
-        //    // 1. Thiết lập dữ liệu đầu vào
-        //    string cccd = "12"; // Giả định đã tồn tại
-        //    string fullName = "Trang";
-        //    string phone = "12345678912333333"; // quá 11 số
-        //    string email = "abc@gmail.com"; // cũng sai định dạng
-        //    string address = "123 Nguyễn Trãi, Hà Nội";
-
-        //    int countBefore = customer.CountAllCustomers();
-        //    string expectedMessage = "Số điện thoại không hợp lệ.";
-        //    // 2. Mở form thêm khách hàng
-        //    customer.OpenAddCustomerSection();
-
-        //    // 3. Thực hiện thêm khách hàng
-        //    customer.AddCustomer(cccd, fullName, phone, email, address);
-
-        //    // 4. Đợi thông báo lỗi hiển thị
-
-        //    var alerts = driver.FindElements(By.CssSelector("div.alert.alert-danger"))
-        //        .Where(a => a.Displayed && !string.IsNullOrWhiteSpace(a.Text)).ToList();
-
-        //    // Kiểm tra có ít nhất 1 lỗi
-        //    if (alerts.Count == 0)
-        //    {
-        //        Assert.Fail("Không có thông báo lỗi nào được hiển thị.");
-        //    }
-
-        //    // Kiểm tra chỉ có 1 lỗi
-        //    Assert.AreEqual(1, alerts.Count, "Có nhiều hơn 1 thông báo lỗi hiển thị.");
-
-        //    // Kiểm tra nội dung lỗi đúng
-        //    string actualError = alerts[0].Text.Trim();
-        //    Assert.AreEqual(expectedMessage, actualError,
-        //        $"Nội dung lỗi không đúng. Mong đợi: \"{expectedMessage}\" - Thực tế: \"{actualError}\"");
-
-        //    Console.WriteLine("Hiển thị đúng một lỗi duy nhất: " + actualError);
-
-        //    // 6. Đảm bảo khách hàng không bị thêm mới
-        //    int countAfter = customer.CountAllCustomers();
-        //    Assert.AreEqual(countBefore, countAfter, "Hệ thống vẫn thêm khách hàng mới dù có lỗi.");
-
-        //    // 7. Đảm bảo khách hàng cũ không bị thay đổi
-        //    var customerAfter = customer.GetCustomerDetails(cccd);
-        //    Assert.IsNotNull(customerAfter, $"Không tìm thấy khách hàng [{cccd}] sau khi test.");
-
-        //    // So sánh với dữ liệu gốc (giả định đã tồn tại từ trước)
-        //    Assert.AreNotEqual(fullName, customerAfter.FullName, "Tên khách hàng bị ghi đè.");
-        //    Assert.AreNotEqual(phone, customerAfter.Phone, "Số điện thoại bị ghi đè.");
-        //    Assert.AreNotEqual(address, customerAfter.Address, "Địa chỉ bị ghi đè.");
-        //    Console.WriteLine("Dữ liệu khách hàng không bị thay đổi -> PASS");
-        //}
-        //[TestMethod]
-        //public void TestAddCustomer11()
-        //{
-        //    // 1. Thiết lập dữ liệu đầu vào
-        //    string cccd = "121"; // Giả định đã tồn tại
-        //    string fullName = "Trang";
-        //    string phone = "1234"; // <10
-        //    string email = "abc@gmail.com"; // cũng sai định dạng
-        //    string address = "123 Nguyễn Trãi, Hà Nội";
-        //    string expectedMessage = "Số điện thoại không hợp lệ.";
-        //    int countBefore = customer.CountAllCustomers();
-
-        //    // 2. Mở form thêm khách hàng
-        //    customer.OpenAddCustomerSection();
-
-        //    // 3. Thực hiện thêm khách hàng
-        //    customer.AddCustomer(cccd, fullName, phone, email, address);
-
-
-
-        //    var alerts = driver.FindElements(By.CssSelector("div.alert.alert-danger"))
-        //        .Where(a => a.Displayed && !string.IsNullOrWhiteSpace(a.Text)).ToList();
-
-        //    // Kiểm tra có ít nhất 1 lỗi
-        //    if (alerts.Count == 0)
-        //    {
-        //        Assert.Fail("Không có thông báo lỗi nào được hiển thị.");
-        //    }
-
-        //    // Kiểm tra chỉ có 1 lỗi
-        //    Assert.AreEqual(1, alerts.Count, "Có nhiều hơn 1 thông báo lỗi hiển thị.");
-
-        //    // Kiểm tra nội dung lỗi đúng
-        //    string actualError = alerts[0].Text.Trim();
-        //    Assert.AreEqual(expectedMessage, actualError,
-        //        $"Nội dung lỗi không đúng. Mong đợi: \"{expectedMessage}\" - Thực tế: \"{actualError}\"");
-
-        //    Console.WriteLine("Hiển thị đúng một lỗi duy nhất: " + actualError);
-
-        //    // 6. Đảm bảo khách hàng không bị thêm mới
-        //    int countAfter = customer.CountAllCustomers();
-        //    Assert.AreEqual(countBefore, countAfter, "Hệ thống vẫn thêm khách hàng mới dù có lỗi.");
-
-        //    // 7. Đảm bảo khách hàng cũ không bị thay đổi
-        //    var customerAfter = customer.GetCustomerDetails(cccd);
-        //    Assert.IsNotNull(customerAfter, $"Không tìm thấy khách hàng [{cccd}] sau khi test.");
-
-        //    // So sánh với dữ liệu gốc (giả định đã tồn tại từ trước)
-        //    Assert.AreNotEqual(fullName, customerAfter.FullName, "Tên khách hàng bị ghi đè.");
-        //    Assert.AreNotEqual(phone, customerAfter.Phone, "Số điện thoại bị ghi đè.");
-        //    Assert.AreNotEqual(address, customerAfter.Address, "Địa chỉ bị ghi đè.");
-        //    Console.WriteLine("Dữ liệu khách hàng không bị thay đổi -> PASS");
-        //}
-        //[TestMethod]
-        //public void TestAddCustomer12()
-        //{
-        //    // 1. Thiết lập dữ liệu đầu vào
-        //    string cccd = "12"; 
-        //    string fullName = "Trang";
-        //    string phone = "test"; 
-        //    string email = "nguyen"; // cũng sai định dạng
-        //    string address = "123 Nguyễn Trãi, Hà Nội";
-
-        //    int countBefore = customer.CountAllCustomers();
-
-        //    // 2. Mở form thêm khách hàng
-        //    customer.OpenAddCustomerSection();
-
-        //    // 3. Thực hiện thêm khách hàng
-        //    customer.AddCustomer(cccd, fullName, phone, email, address);
-
-        //    // 4. Đợi thông báo lỗi hiển thị
-        //    var phoneInput = driver.FindElement(By.Id("phone"));
-        //    string validationMessage = phoneInput.GetAttribute("validationMessage");
-        //    Assert.AreEqual("Please fill out this field.", validationMessage);
-        //    Console.WriteLine($"Thông báo lỗi HTML5 tại 'SĐT': {validationMessage}");
-
-        //    // 5. Kiểm tra form vẫn đang mở
-        //    bool isModalStillOpen = driver.FindElement(By.Id("addCustomerModal"))
-        //        .GetAttribute("class").Contains("show");
-        //    Assert.IsTrue(isModalStillOpen, "Form đã bị đóng dù dữ liệu không hợp lệ.");
-        //    Console.WriteLine("Form vẫn hiển thị sau khi nhập dữ liệu không hợp lệ.");
-
-        //    // 6. Kiểm tra không có khách hàng nào được thêm
-        //    int countAfter = customer.CountAllCustomers();
-        //    Assert.AreEqual(countBefore, countAfter, "Hệ thống vẫn thêm khách hàng dù dữ liệu không hợp lệ.");
-
-        //    // 7. Kiểm tra thông báo lỗi giao diện (nếu có)
-
-        //    var alerts = driver.FindElements(By.CssSelector("div.alert.alert-danger"))
-        //        .Where(a => a.Displayed && !string.IsNullOrWhiteSpace(a.Text)).ToList();
-
-        //    Assert.AreEqual(0, alerts.Count, "Không nên có alert vì trình duyệt đã chặn submit.");
-        //    Console.WriteLine("Không có alert lỗi hiển thị (đúng do bị HTML5 chặn).");
-
-        //    // 8. Đảm bảo thông tin khách hàng vẫn giữ nguyên
-        //    var customerAfter = customer.GetCustomerDetails(cccd);
-        //    Assert.IsNotNull(customerAfter, $"Không tìm thấy khách hàng [{cccd}] sau khi test.");
-
-        //    // So sánh với dữ liệu gốc (giả định đã tồn tại từ trước)
-        //    Assert.AreNotEqual(fullName, customerAfter.FullName, "Tên khách hàng bị ghi đè.");
-        //    Assert.AreNotEqual(phone, customerAfter.Phone, "Số điện thoại bị ghi đè.");
-        //    Assert.AreNotEqual(address, customerAfter.Address, "Địa chỉ bị ghi đè.");
-        //    Console.WriteLine("Dữ liệu khách hàng không bị thay đổi -> PASS");
-        //}
-        //[TestMethod]
-        //public void TestAddCustomer13()
-        //{
-        //    // 1. Thiết lập dữ liệu đầu vào
-        //    string cccd = "12"; // Giả định đã tồn tại
-        //    string fullName = "Trang";
-        //    string phone = "123456876"; 
-        //    string email = "nguyen"; // cũng sai định dạng
-        //    string address = "123 Nguyễn Trãi, Hà Nội";
-
-        //    int countBefore = customer.CountAllCustomers();
-        //    string expectedMessage = "Số điện thoại không hợp lệ.";
-        //    // 2. Mở form thêm khách hàng
-        //    customer.OpenAddCustomerSection();
-
-        //    // 3. Thực hiện thêm khách hàng
-        //    customer.AddCustomer(cccd, fullName, phone, email, address);
-
-        //    var cccdField = driver.FindElement(By.Id("email"));
-        //    string validationMessage = cccdField.GetAttribute("validationMessage");
-
-        //    string expected = $"Please include an '@' in the email address. '{email}' is missing an '@'.";
-        //    Assert.AreEqual(expected, validationMessage);
-        //    // 5. Kiểm tra form vẫn đang mở
-        //    bool isModalStillOpen = driver.FindElement(By.Id("addCustomerModal"))
-        //        .GetAttribute("class").Contains("show");
-        //    Assert.IsTrue(isModalStillOpen, "Form đã bị đóng dù dữ liệu không hợp lệ.");
-        //    Console.WriteLine("Form vẫn hiển thị sau khi nhập dữ liệu không hợp lệ.");
-
-        //    // 6. Kiểm tra không có khách hàng nào được thêm
-        //    int countAfter = customer.CountAllCustomers();
-        //    Assert.AreEqual(countBefore, countAfter, "Hệ thống vẫn thêm khách hàng dù dữ liệu không hợp lệ.");
-
-        //    // 7. Kiểm tra thông báo lỗi giao diện (nếu có)
-
-        //    var alerts = driver.FindElements(By.CssSelector("div.alert.alert-danger"))
-        //        .Where(a => a.Displayed && !string.IsNullOrWhiteSpace(a.Text)).ToList();
-
-        //    Assert.AreEqual(0, alerts.Count, "Không nên có alert vì trình duyệt đã chặn submit.");
-        //    Console.WriteLine("Không có alert lỗi hiển thị (đúng do bị HTML5 chặn).");
-
-        //    // 7. Đảm bảo khách hàng cũ không bị thay đổi
-        //    var customerAfter = customer.GetCustomerDetails(cccd);
-        //    Assert.IsNotNull(customerAfter, $"Không tìm thấy khách hàng [{cccd}] sau khi test.");
-
-        //    // So sánh với dữ liệu gốc (giả định đã tồn tại từ trước)
-        //    Assert.AreNotEqual(fullName, customerAfter.FullName, "Tên khách hàng bị ghi đè.");
-        //    Assert.AreNotEqual(phone, customerAfter.Phone, "Số điện thoại bị ghi đè.");
-        //    Assert.AreNotEqual(address, customerAfter.Address, "Địa chỉ bị ghi đè.");
-        //    Console.WriteLine("Dữ liệu khách hàng không bị thay đổi -> PASS");
-        //}
-        //[TestMethod]
-        //public void TestAddCustomer14()
-        //{
-        //    // 1. Thiết lập dữ liệu đầu vào
-        //    string cccd = "12"; // Giả định đã tồn tại
-        //    string fullName = "Trang";
-        //    string phone = "12345678912333333"; 
-        //    string email = "nguyen"; // cũng sai định dạng
-        //    string address = "123 Nguyễn Trãi, Hà Nội";
-
-        //    int countBefore = customer.CountAllCustomers();
-        //    string expectedMessage = "Số điện thoại không hợp lệ.";
-        //    // 2. Mở form thêm khách hàng
-        //    customer.OpenAddCustomerSection();
-
-        //    // 3. Thực hiện thêm khách hàng
-        //    customer.AddCustomer(cccd, fullName, phone, email, address);
-
-        //    var cccdField = driver.FindElement(By.Id("email"));
-        //    string validationMessage = cccdField.GetAttribute("validationMessage");
-
-        //    string expected = $"Please include an '@' in the email address. '{email}' is missing an '@'.";
-        //    Assert.AreEqual(expected, validationMessage);
-        //    // 5. Kiểm tra form vẫn đang mở
-        //    bool isModalStillOpen = driver.FindElement(By.Id("addCustomerModal"))
-        //        .GetAttribute("class").Contains("show");
-        //    Assert.IsTrue(isModalStillOpen, "Form đã bị đóng dù dữ liệu không hợp lệ.");
-        //    Console.WriteLine("Form vẫn hiển thị sau khi nhập dữ liệu không hợp lệ.");
-
-        //    // 6. Kiểm tra không có khách hàng nào được thêm
-        //    int countAfter = customer.CountAllCustomers();
-        //    Assert.AreEqual(countBefore, countAfter, "Hệ thống vẫn thêm khách hàng dù dữ liệu không hợp lệ.");
-
-        //    // 7. Kiểm tra thông báo lỗi giao diện (nếu có)
-
-        //    var alerts = driver.FindElements(By.CssSelector("div.alert.alert-danger"))
-        //        .Where(a => a.Displayed && !string.IsNullOrWhiteSpace(a.Text)).ToList();
-
-        //    Assert.AreEqual(0, alerts.Count, "Không nên có alert vì trình duyệt đã chặn submit.");
-        //    Console.WriteLine("Không có alert lỗi hiển thị (đúng do bị HTML5 chặn).");
-
-        //    // 7. Đảm bảo khách hàng cũ không bị thay đổi
-        //    var customerAfter = customer.GetCustomerDetails(cccd);
-        //    Assert.IsNotNull(customerAfter, $"Không tìm thấy khách hàng [{cccd}] sau khi test.");
-
-        //    // So sánh với dữ liệu gốc (giả định đã tồn tại từ trước)
-        //    Assert.AreNotEqual(fullName, customerAfter.FullName, "Tên khách hàng bị ghi đè.");
-        //    Assert.AreNotEqual(phone, customerAfter.Phone, "Số điện thoại bị ghi đè.");
-        //    Assert.AreNotEqual(address, customerAfter.Address, "Địa chỉ bị ghi đè.");
-        //    Console.WriteLine("Dữ liệu khách hàng không bị thay đổi -> PASS");
-        //}
+        [TestMethod]
+        public void TestAddCustomer10()
+        {
+
+            string cccd = "0000022221";
+            string fullName = "test";
+            string phone = "1234567";
+            string email = "test@gmail.com";
+            string address = "123 Đường ABC, Hà Nội";
+            int countBefore = customer.CountAllCustomers();
+            // Mở form thêm khách hàng
+            customer.OpenAddCustomerSection();
+
+            // Thực hiện nhập dữ liệu
+            customer.AddCustomer(cccd, fullName, phone, email, address);
+            // Mở form thêm khách hàng
+            customer.OpenAddCustomerSection();
+
+
+            customer.AddCustomer(cccd, fullName, phone, email, address);
+
+            try
+            {
+                var errorElement = wait.Until(driver =>
+                {
+                    try
+                    {
+                        var element = driver.FindElement(By.CssSelector("div.alert.alert-danger"));
+                        return element.Displayed ? element : null;
+                    }
+                    catch (NoSuchElementException)
+                    {
+                        return null;
+                    }
+                });
+
+                Assert.AreEqual("Số điện thoại không hợp lệ.", errorElement.Text.Trim(), "Nội dung thông báo không đúng.");
+                Console.WriteLine($"Thông báo hiển thị là: {errorElement.Text.Trim()}");
+            }
+            catch (WebDriverTimeoutException)
+            {
+                Assert.Fail("Không tìm thấy thông báo lỗi với SĐT không hợp lệ");
+            }
+
+            int countAfter = customer.CountAllCustomers();
+            Assert.AreEqual(countBefore, countAfter, "Hệ thống vẫn thêm khách hàng dù SĐT không hợp lệ.");
+            Console.WriteLine("Không có khách hàng nào được thêm vào hệ thống -> Pass");
+
+        }
+
+        [TestMethod]
+        public void TestAddCustomer11()
+        {
+
+            string cccd = "0000022221";
+            string fullName = "test";
+            string phone = "0234567555555555";
+            string email = "test@gmail.com";
+            string address = "123 Đường ABC, Hà Nội";
+            int countBefore = customer.CountAllCustomers();
+            // Mở form thêm khách hàng
+            customer.OpenAddCustomerSection();
+
+            // Thực hiện nhập dữ liệu
+            customer.AddCustomer(cccd, fullName, phone, email, address);
+            // Mở form thêm khách hàng
+            customer.OpenAddCustomerSection();
+
+
+            customer.AddCustomer(cccd, fullName, phone, email, address);
+
+            try
+            {
+                var errorElement = wait.Until(driver =>
+                {
+                    try
+                    {
+                        var element = driver.FindElement(By.CssSelector("div.alert.alert-danger"));
+                        return element.Displayed ? element : null;
+                    }
+                    catch (NoSuchElementException)
+                    {
+                        return null;
+                    }
+                });
+
+                Assert.AreEqual("Số điện thoại không hợp lệ.", errorElement.Text.Trim(), "Nội dung thông báo không đúng.");
+                Console.WriteLine($"Thông báo hiển thị là: {errorElement.Text.Trim()}");
+            }
+            catch (WebDriverTimeoutException)
+            {
+                Assert.Fail("Không tìm thấy thông báo lỗi với SĐT không hợp lệ");
+            }
+
+            int countAfter = customer.CountAllCustomers();
+            Assert.AreEqual(countBefore, countAfter, "Hệ thống vẫn thêm khách hàng dù SĐT không hợp lệ.");
+            Console.WriteLine("Không có khách hàng nào được thêm vào hệ thống -> Pass");
+
+        }
+        [TestMethod]
+        public void TestAddCustomer12()
+        {
+
+            string cccd = "0000022221";
+            string fullName = "test";
+            string phone = "test";
+            string email = "test@gmail.com";
+            string address = "123 Đường ABC, Hà Nội";
+            int countBefore = customer.CountAllCustomers();
+            // Mở form thêm khách hàng
+            customer.OpenAddCustomerSection();
+
+            // Thực hiện nhập dữ liệu
+            customer.AddCustomer(cccd, fullName, phone, email, address);
+            // Mở form thêm khách hàng
+
+            // Kiểm tra thông báo lỗi mặc định trình duyệt 
+            var cccdField = driver.FindElement(By.Id("phone"));
+            string validationMessage = cccdField.GetAttribute("validationMessage");
+
+            Assert.AreEqual("Please fill out this field.", validationMessage);
+            Console.WriteLine($"Thông báo lỗi: {validationMessage}");
+            // Đảm bảo form vẫn đang mở (không submit được)
+            bool isModalStillOpen = driver.FindElement(By.Id("addCustomerModal")).GetAttribute("class").Contains("show");
+            Assert.IsTrue(isModalStillOpen, "Form đã bị đóng dù dữ liệu không hợp lệ");
+            Console.WriteLine("Form vẫn hiển thị sau khi nhập dữ liệu không hợp lệ.");
+
+            int countAfter = customer.CountAllCustomers();
+
+            // So sánh số lượng phòng để đảm bảo không có phòng mới được thêm
+            Assert.AreEqual(countBefore, countAfter, "Hệ thống vẫn thêm phòng mới dù dữ liệu không hợp lệ.");
+            Console.WriteLine("Không có khách hàng nào được thêm vào hệ thống -> Pass");
+
+        }
+        [TestMethod]
+        public void TestAddCustomer13()
+        {
+
+            string cccd = "0000022221";
+            string fullName = "test";
+            string phone = "1234567558";
+            string email = "test@gmail.com";
+            string address = "123 Đường ABC, Hà Nội";
+            int countBefore = customer.CountAllCustomers();
+            // Mở form thêm khách hàng
+            customer.OpenAddCustomerSection();
+
+            // Thực hiện nhập dữ liệu
+            customer.AddCustomer(cccd, fullName, phone, email, address);
+            // Mở form thêm khách hàng
+            customer.OpenAddCustomerSection();
+
+
+            customer.AddCustomer(cccd, fullName, phone, email, address);
+
+            try
+            {
+                var errorElement = wait.Until(driver =>
+                {
+                    try
+                    {
+                        var element = driver.FindElement(By.CssSelector("div.alert.alert-danger"));
+                        return element.Displayed ? element : null;
+                    }
+                    catch (NoSuchElementException)
+                    {
+                        return null;
+                    }
+                });
+
+                Assert.AreEqual("Số điện thoại không hợp lệ.", errorElement.Text.Trim(), "Nội dung thông báo không đúng.");
+                Console.WriteLine($"Thông báo hiển thị là: {errorElement.Text.Trim()}");
+            }
+            catch (WebDriverTimeoutException)
+            {
+                Assert.Fail("Không tìm thấy thông báo lỗi với SĐT không hợp lệ");
+            }
+
+            int countAfter = customer.CountAllCustomers();
+            Assert.AreEqual(countBefore, countAfter, "Hệ thống vẫn thêm khách hàng dù SĐT không hợp lệ.");
+            Console.WriteLine("Không có khách hàng nào được thêm vào hệ thống -> Pass");
+
+        }
+        [TestMethod]
+        public void TestAddCustomer14()
+        {
+
+            string cccd = "0000022221";
+            string fullName = "test";
+            string phone = "0234567558";
+            string email = "testgmail.com";
+            string address = "123 Đường ABC, Hà Nội";
+            int countBefore = customer.CountAllCustomers();
+            // Mở form thêm khách hàng
+            customer.OpenAddCustomerSection();
+
+            // Thực hiện nhập dữ liệu
+            customer.AddCustomer(cccd, fullName, phone, email, address);
+            // Mở form thêm khách hàng
+            customer.OpenAddCustomerSection();
+
+
+            customer.AddCustomer(cccd, fullName, phone, email, address);
+
+            try
+            {
+                var errorElement = wait.Until(driver =>
+                {
+                    try
+                    {
+                        var element = driver.FindElement(By.CssSelector("div.alert.alert-danger"));
+                        return element.Displayed ? element : null;
+                    }
+                    catch (NoSuchElementException)
+                    {
+                        return null;
+                    }
+                });
+
+                Assert.AreEqual("Email không hợp lệ.", errorElement.Text.Trim(), "Nội dung thông báo không đúng.");
+                Console.WriteLine($"Thông báo hiển thị là: {errorElement.Text.Trim()}");
+            }
+            catch (WebDriverTimeoutException)
+            {
+                Assert.Fail("Không tìm thấy thông báo lỗi với email không hợp lệ");
+            }
+
+            int countAfter = customer.CountAllCustomers();
+            Assert.AreEqual(countBefore, countAfter, "Hệ thống vẫn thêm khách hàng dù email không hợp lệ.");
+            Console.WriteLine("Không có khách hàng nào được thêm vào hệ thống -> Pass");
+
+        }
+        [TestMethod]
+        public void TestAddCustomer15()
+        {
+          
+            string cccd = "121"; 
+            string fullName = ""; 
+            string phone = "09123423429";
+            string email = "nguyen";
+            string address = "123 Nguyễn Trãi, Hà Nội";
+
+            var customerBefore = customer.GetCustomerDetails(cccd);
+            int countBefore = customer.CountAllCustomers();
+
+          
+            customer.OpenAddCustomerSection();
+
+       
+            customer.AddCustomer(cccd, fullName, phone, email, address);
+
+            // 4. Kiểm tra lỗi 
+            var fullNameInput = driver.FindElement(By.Id("full_name"));
+            string validationMessage = fullNameInput.GetAttribute("validationMessage");
+            Assert.AreEqual("Please fill out this field.", validationMessage);
+            Console.WriteLine($"Thông báo lỗi HTML5 tại 'full_name': {validationMessage}");
+
+            // 5. Kiểm tra form vẫn đang mở
+            bool isModalStillOpen = driver.FindElement(By.Id("addCustomerModal"))
+                .GetAttribute("class").Contains("show");
+            Assert.IsTrue(isModalStillOpen, "Form đã bị đóng dù dữ liệu không hợp lệ.");
+            Console.WriteLine("Form vẫn hiển thị sau khi nhập dữ liệu không hợp lệ.");
+
+            // 6. Kiểm tra không có khách hàng nào được thêm
+            int countAfter = customer.CountAllCustomers();
+            Assert.AreEqual(countBefore, countAfter, "Hệ thống vẫn thêm khách hàng dù dữ liệu không hợp lệ.");
+
+            // 7. Kiểm tra không có alert vì form bị chặn trước khi submit
+            var alerts = driver.FindElements(By.CssSelector("div.alert.alert-danger"))
+                .Where(a => a.Displayed && !string.IsNullOrWhiteSpace(a.Text)).ToList();
+
+            Assert.AreEqual(0, alerts.Count, "Không nên có alert vì trình duyệt đã chặn submit.");
+            Console.WriteLine("Không có alert lỗi hiển thị (đúng do bị HTML5 chặn).");
+
+            // 8. Đảm bảo thông tin khách hàng có sẵn không bị ghi đè
+            var customerAfter = customer.GetCustomerDetails(cccd);
+            Assert.IsNotNull(customerAfter, $"Không tìm thấy khách hàng [{cccd}] sau khi test.");
+
+            // So sánh với dữ liệu gốc (giả định đã tồn tại từ trước)
+
+            Assert.AreEqual(customerBefore.FullName, customerAfter.FullName, "Tên bị ghi đè.");
+            Assert.AreEqual(customerBefore.Phone, customerAfter.Phone, "SĐT bị ghi đè.");
+            Assert.AreEqual(customerBefore.Email, customerAfter.Email, "Email bị ghi đè.");
+            Assert.AreEqual(customerBefore.Address, customerAfter.Address, "Địa chỉ bị ghi đè.");
+            Console.WriteLine("Dữ liệu khách hàng không bị thay đổi -> PASS");
+        }
+        //CCCD trùng, SDT trống
+        [TestMethod]
+        public void TestAddCustomer16()
+        {
+       
+            string cccd = "121";
+            string fullName = "test";
+            string phone = "";
+            string email = "nguyen";
+            string address = "123 Nguyễn Trãi, Hà Nội";
+
+            var customerBefore = customer.GetCustomerDetails(cccd);
+            int countBefore = customer.CountAllCustomers();
+
+          
+            customer.OpenAddCustomerSection();
+
+            customer.AddCustomer(cccd, fullName, phone, email, address);
+
+            // 4. Kiểm tra lỗi 
+            var fullNameInput = driver.FindElement(By.Id("phone"));
+            string validationMessage = fullNameInput.GetAttribute("validationMessage");
+            Assert.AreEqual("Please fill out this field.", validationMessage);
+            Console.WriteLine($"Thông báo lỗi HTML5 tại 'phone': {validationMessage}");
+
+            // 5. Kiểm tra form vẫn đang mở
+            bool isModalStillOpen = driver.FindElement(By.Id("addCustomerModal"))
+                .GetAttribute("class").Contains("show");
+            Assert.IsTrue(isModalStillOpen, "Form đã bị đóng dù dữ liệu không hợp lệ.");
+            Console.WriteLine("Form vẫn hiển thị sau khi nhập dữ liệu không hợp lệ.");
+
+            // 6. Kiểm tra không có khách hàng nào được thêm
+            int countAfter = customer.CountAllCustomers();
+            Assert.AreEqual(countBefore, countAfter, "Hệ thống vẫn thêm khách hàng dù dữ liệu không hợp lệ.");
+
+            // 7. Kiểm tra không có alert vì form bị chặn trước khi submit
+            var alerts = driver.FindElements(By.CssSelector("div.alert.alert-danger"))
+                .Where(a => a.Displayed && !string.IsNullOrWhiteSpace(a.Text)).ToList();
+
+            Assert.AreEqual(0, alerts.Count, "Không nên có alert vì trình duyệt đã chặn submit.");
+            Console.WriteLine("Không có alert lỗi hiển thị (đúng do bị HTML5 chặn).");
+
+            // 8. Đảm bảo thông tin khách hàng có sẵn không bị ghi đè
+            var customerAfter = customer.GetCustomerDetails(cccd);
+            Assert.IsNotNull(customerAfter, $"Không tìm thấy khách hàng [{cccd}] sau khi test.");
+
+            // So sánh với dữ liệu gốc 
+
+            Assert.AreEqual(customerBefore.FullName, customerAfter.FullName, "Tên bị ghi đè.");
+            Assert.AreEqual(customerBefore.Phone, customerAfter.Phone, "SĐT bị ghi đè.");
+            Assert.AreEqual(customerBefore.Email, customerAfter.Email, "Email bị ghi đè.");
+            Assert.AreEqual(customerBefore.Address, customerAfter.Address, "Địa chỉ bị ghi đè.");
+            Console.WriteLine("Dữ liệu khách hàng không bị thay đổi -> PASS");
+        }
+        //CCCD trùng, SDT <10
+        [TestMethod]
+        public void TestAddCustomer17()
+        {
+
+            string cccd = "02021050751";
+            string fullName = "test";
+            string phone = "1234";
+            string email = "nguyen";
+            string address = "123 Nguyễn Trãi, Hà Nội";
+            string expectedMessage = "Số điện thoại không hợp lệ.";
+            var customerBefore = customer.GetCustomerDetails(cccd);
+            int countBefore = customer.CountAllCustomers();
+
+
+            customer.OpenAddCustomerSection();
+
+            customer.AddCustomer(cccd, fullName, phone, email, address);
+
+            // 4. Kiểm tra lỗi 
+            wait.Until(d => d.FindElements(By.CssSelector("div.alert.alert-danger"))
+                 .Any(a => a.Displayed && !string.IsNullOrWhiteSpace(a.Text)));
+
+            var alerts = driver.FindElements(By.CssSelector("div.alert.alert-danger"))
+                .Where(a => a.Displayed && !string.IsNullOrWhiteSpace(a.Text)).ToList();
+
+            // Kiểm tra có ít nhất 1 lỗi
+            if (alerts.Count == 0)
+            {
+                Assert.Fail("Không có thông báo lỗi nào được hiển thị.");
+            }
+
+            // Kiểm tra chỉ có 1 lỗi
+            Assert.AreEqual(1, alerts.Count, "Có nhiều hơn 1 thông báo lỗi hiển thị.");
+
+            // Kiểm tra nội dung lỗi đúng
+            string actualError = alerts[0].Text.Trim();
+            Assert.AreEqual(expectedMessage, actualError,
+                $"Nội dung lỗi không đúng. Mong đợi: \"{expectedMessage}\" - Thực tế: \"{actualError}\"");
+
+            Console.WriteLine("Hiển thị đúng một lỗi duy nhất: " + actualError);
+
+            // 6. Kiểm tra không có khách hàng nào được thêm
+            int countAfter = customer.CountAllCustomers();
+            Assert.AreEqual(countBefore, countAfter, "Hệ thống vẫn thêm khách hàng dù dữ liệu không hợp lệ.");
+
+       
+           
+
+            // 8. Đảm bảo thông tin khách hàng có sẵn không bị ghi đè
+            var customerAfter = customer.GetCustomerDetails(cccd);
+            Assert.IsNotNull(customerAfter, $"Không tìm thấy khách hàng [{cccd}] sau khi test.");
+
+            // So sánh với dữ liệu gốc 
+
+            Assert.AreEqual(customerBefore.FullName, customerAfter.FullName, "Tên bị ghi đè.");
+            Assert.AreEqual(customerBefore.Phone, customerAfter.Phone, "SĐT bị ghi đè.");
+            Assert.AreEqual(customerBefore.Email, customerAfter.Email, "Email bị ghi đè.");
+            Assert.AreEqual(customerBefore.Address, customerAfter.Address, "Địa chỉ bị ghi đè.");
+            Console.WriteLine("Dữ liệu khách hàng không bị thay đổi -> PASS");
+        }
+        //CCCD trùng, SDT >13
+        [TestMethod]
+        public void TestAddCustomer18()
+        {
+            // 1. Thiết lập dữ liệu đầu vào không hợp lệ
+            string cccd = "02021050751";
+            string fullName = "test";
+            string phone = "01234678915777"; // quá dài
+            string email = "nguyen";
+            string address = "123 Nguyễn Trãi, Hà Nội";
+            string expectedMessage = "Số điện thoại không hợp lệ.";
+
+            // 2. Lưu lại thông tin khách hàng gốc (nếu có)
+            var customerBefore = customer.GetCustomerDetails(cccd);
+            int countBefore = customer.CountAllCustomers();
+
+            // 3. Mở form thêm khách hàng
+            customer.OpenAddCustomerSection();
+            customer.AddCustomer(cccd, fullName, phone, email, address);
+
+            // 4. Đợi alert lỗi xuất hiện
+            var alerts = wait.Until(driver =>
+            {
+                var found = driver.FindElements(By.CssSelector("div.alert.alert-danger"))
+                    .Where(a => a.Displayed && !string.IsNullOrWhiteSpace(a.Text)).ToList();
+                return found.Count > 0 ? found : null;
+            });
+
+            // 5. Kiểm tra số lượng và nội dung thông báo lỗi
+            Assert.AreEqual(1, alerts.Count, $"Có {alerts.Count} thông báo lỗi hiển thị, mong đợi chỉ 1.");
+            string actualError = alerts[0].Text.Trim();
+            Assert.AreEqual(expectedMessage, actualError,
+                $"Nội dung lỗi không đúng. Mong đợi: \"{expectedMessage}\" - Thực tế: \"{actualError}\"");
+            Console.WriteLine("Hiển thị đúng một lỗi duy nhất: " + actualError);
+
+            // 6. Kiểm tra không có khách hàng nào được thêm
+            int countAfter = customer.CountAllCustomers();
+            Assert.AreEqual(countBefore, countAfter, "Hệ thống vẫn thêm khách hàng dù dữ liệu không hợp lệ.");
+
+            // 7. Kiểm tra dữ liệu khách hàng không bị ghi đè
+            var customerAfter = customer.GetCustomerDetails(cccd);
+            Assert.IsNotNull(customerAfter, $"Không tìm thấy khách hàng [{cccd}] sau khi test.");
+
+            // Nếu trước đó đã có khách hàng, kiểm tra không bị ghi đè
+            //if (customerBefore != null)
+            //{
+                Assert.AreEqual(customerBefore.FullName, customerAfter.FullName, "Tên bị ghi đè.");
+                Assert.AreEqual(customerBefore.Phone, customerAfter.Phone, "SĐT bị ghi đè.");
+                Assert.AreEqual(customerBefore.Email, customerAfter.Email, "Email bị ghi đè.");
+                Assert.AreEqual(customerBefore.Address, customerAfter.Address, "Địa chỉ bị ghi đè.");
+                Console.WriteLine("Dữ liệu khách hàng không bị thay đổi -> PASS");
+            //}
+            //else
+            //{
+            //    Console.WriteLine("Không có khách hàng ban đầu -> Bỏ qua kiểm tra ghi đè.");
+            //}
+        }
+        // CCCD trùng, SDT kh phải kí tự số
+        [TestMethod]
+        public void TestAddCustomer19()
+        {
+            // 1. Thiết lập dữ liệu đầu vào không hợp lệ
+            string cccd = "02021050751";
+            string fullName = "test";
+            string phone = "test"; 
+            string email = "nguyen";
+            string address = "123 Nguyễn Trãi, Hà Nội";
+            string expectedMessage = "Số điện thoại không hợp lệ.";
+
+            // 2. Lưu lại thông tin khách hàng gốc (nếu có)
+            var customerBefore = customer.GetCustomerDetails(cccd);
+            int countBefore = customer.CountAllCustomers();
+
+            // 3. Mở form thêm khách hàng
+            customer.OpenAddCustomerSection();
+            customer.AddCustomer(cccd, fullName, phone, email, address);
+
+            // 4. Kiểm tra lỗi 
+            var fullNameInput = driver.FindElement(By.Id("phone"));
+            string validationMessage = fullNameInput.GetAttribute("validationMessage");
+            Assert.AreEqual("Please fill out this field.", validationMessage);
+            Console.WriteLine($"Thông báo lỗi HTML5 tại 'phone': {validationMessage}");
+
+            // 5. Kiểm tra form vẫn đang mở
+            bool isModalStillOpen = driver.FindElement(By.Id("addCustomerModal"))
+                .GetAttribute("class").Contains("show");
+            Assert.IsTrue(isModalStillOpen, "Form đã bị đóng dù dữ liệu không hợp lệ.");
+            Console.WriteLine("Form vẫn hiển thị sau khi nhập dữ liệu không hợp lệ.");
+
+            // 6. Kiểm tra không có khách hàng nào được thêm
+            int countAfter = customer.CountAllCustomers();
+            Assert.AreEqual(countBefore, countAfter, "Hệ thống vẫn thêm khách hàng dù dữ liệu không hợp lệ.");
+
+            // 7. Kiểm tra không có alert vì form bị chặn trước khi submit
+            var alerts = driver.FindElements(By.CssSelector("div.alert.alert-danger"))
+                .Where(a => a.Displayed && !string.IsNullOrWhiteSpace(a.Text)).ToList();
+
+            Assert.AreEqual(0, alerts.Count, "Không nên có alert vì trình duyệt đã chặn submit.");
+            Console.WriteLine("Không có alert lỗi hiển thị (đúng do bị HTML5 chặn).");
+
+            // 8. Đảm bảo thông tin khách hàng có sẵn không bị ghi đè
+            var customerAfter = customer.GetCustomerDetails(cccd);
+            Assert.IsNotNull(customerAfter, $"Không tìm thấy khách hàng [{cccd}] sau khi test.");
+
+            // So sánh với dữ liệu gốc 
+            Assert.AreEqual(customerBefore.FullName, customerAfter.FullName, "Tên bị ghi đè.");
+            Assert.AreEqual(customerBefore.Phone, customerAfter.Phone, "SĐT bị ghi đè.");
+            Assert.AreEqual(customerBefore.Email, customerAfter.Email, "Email bị ghi đè.");
+            Assert.AreEqual(customerBefore.Address, customerAfter.Address, "Địa chỉ bị ghi đè.");
+            Console.WriteLine("Dữ liệu khách hàng không bị thay đổi -> PASS");
+
+        }
+        //CCCD trùng, SDT đầu  # 0
+        [TestMethod]
+        public void TestAddCustomer20()
+        {
+            // 1. Thiết lập dữ liệu đầu vào không hợp lệ
+            string cccd = "02021050751";
+            string fullName = "test";
+            string phone = "123467891"; // quá dài
+            string email = "nguyen";
+            string address = "123 Nguyễn Trãi, Hà Nội";
+            string expectedMessage = "Số điện thoại không hợp lệ.";
+
+            // 2. Lưu lại thông tin khách hàng gốc (nếu có)
+            var customerBefore = customer.GetCustomerDetails(cccd);
+            int countBefore = customer.CountAllCustomers();
+
+            // 3. Mở form thêm khách hàng
+            customer.OpenAddCustomerSection();
+            customer.AddCustomer(cccd, fullName, phone, email, address);
+
+            // 4. Đợi alert lỗi xuất hiện
+            var alerts = wait.Until(driver =>
+            {
+                var found = driver.FindElements(By.CssSelector("div.alert.alert-danger"))
+                    .Where(a => a.Displayed && !string.IsNullOrWhiteSpace(a.Text)).ToList();
+                return found.Count > 0 ? found : null;
+            });
+
+            // 5. Kiểm tra số lượng và nội dung thông báo lỗi
+            Assert.AreEqual(1, alerts.Count, $"Có {alerts.Count} thông báo lỗi hiển thị, mong đợi chỉ 1.");
+            string actualError = alerts[0].Text.Trim();
+            Assert.AreEqual(expectedMessage, actualError,
+                $"Nội dung lỗi không đúng. Mong đợi: \"{expectedMessage}\" - Thực tế: \"{actualError}\"");
+            Console.WriteLine("Hiển thị đúng một lỗi duy nhất: " + actualError);
+
+            // 6. Kiểm tra không có khách hàng nào được thêm
+            int countAfter = customer.CountAllCustomers();
+            Assert.AreEqual(countBefore, countAfter, "Hệ thống vẫn thêm khách hàng dù dữ liệu không hợp lệ.");
+
+            // 7. Kiểm tra dữ liệu khách hàng không bị ghi đè
+            var customerAfter = customer.GetCustomerDetails(cccd);
+            Assert.IsNotNull(customerAfter, $"Không tìm thấy khách hàng [{cccd}] sau khi test.");
+
+            
+            Assert.AreEqual(customerBefore.FullName, customerAfter.FullName, "Tên bị ghi đè.");
+            Assert.AreEqual(customerBefore.Phone, customerAfter.Phone, "SĐT bị ghi đè.");
+            Assert.AreEqual(customerBefore.Email, customerAfter.Email, "Email bị ghi đè.");
+            Assert.AreEqual(customerBefore.Address, customerAfter.Address, "Địa chỉ bị ghi đè.");
+            Console.WriteLine("Dữ liệu khách hàng không bị thay đổi -> PASS");
+          
+        }
+        //CCCD trùng, email sai dịnh dạng
+        [TestMethod]
+        public void TestAddCustomer21()
+        {
+            // 1. Thiết lập dữ liệu đầu vào không hợp lệ
+            string cccd = "02021050751";
+            string fullName = "test";
+            string phone = "0123467891"; // quá dài
+            string email = "nguyenfff";
+            string address = "123 Nguyễn Trãi, Hà Nội";
+            string expectedMessage = "Email không hợp lệ.";
+
+            // 2. Lưu lại thông tin khách hàng gốc (nếu có)
+            var customerBefore = customer.GetCustomerDetails(cccd);
+            int countBefore = customer.CountAllCustomers();
+
+            // 3. Mở form thêm khách hàng
+            customer.OpenAddCustomerSection();
+            customer.AddCustomer(cccd, fullName, phone, email, address);
+
+            // 4. Đợi alert lỗi xuất hiện
+            var alerts = wait.Until(driver =>
+            {
+                var found = driver.FindElements(By.CssSelector("div.alert.alert-danger"))
+                    .Where(a => a.Displayed && !string.IsNullOrWhiteSpace(a.Text)).ToList();
+                return found.Count > 0 ? found : null;
+            });
+
+            // 5. Kiểm tra số lượng và nội dung thông báo lỗi
+            Assert.AreEqual(1, alerts.Count, $"Có {alerts.Count} thông báo lỗi hiển thị, mong đợi chỉ 1.");
+            string actualError = alerts[0].Text.Trim();
+            Assert.AreEqual(expectedMessage, actualError,
+                $"Nội dung lỗi không đúng. Mong đợi: \"{expectedMessage}\" - Thực tế: \"{actualError}\"");
+            Console.WriteLine("Hiển thị đúng một lỗi duy nhất: " + actualError);
+
+            // 6. Kiểm tra không có khách hàng nào được thêm
+            int countAfter = customer.CountAllCustomers();
+            Assert.AreEqual(countBefore, countAfter, "Hệ thống vẫn thêm khách hàng dù dữ liệu không hợp lệ.");
+
+            // 7. Kiểm tra dữ liệu khách hàng không bị ghi đè
+            var customerAfter = customer.GetCustomerDetails(cccd);
+            Assert.IsNotNull(customerAfter, $"Không tìm thấy khách hàng [{cccd}] sau khi test.");
+
+
+            Assert.AreEqual(customerBefore.FullName, customerAfter.FullName, "Tên bị ghi đè.");
+            Assert.AreEqual(customerBefore.Phone, customerAfter.Phone, "SĐT bị ghi đè.");
+            Assert.AreEqual(customerBefore.Email, customerAfter.Email, "Email bị ghi đè.");
+            Assert.AreEqual(customerBefore.Address, customerAfter.Address, "Địa chỉ bị ghi đè.");
+            Console.WriteLine("Dữ liệu khách hàng không bị thay đổi -> PASS");
+
+        }
+        [TestMethod]
+        public void TestAddCustomer22()
+        {
+            // 1. Thiết lập dữ liệu đầu vào không hợp lệ
+            string cccd = "02021050766";
+            string fullName = "test";
+            string phone = "012346"; // quá dài
+            string email = "nguyenfff";
+            string address = "123 Nguyễn Trãi, Hà Nội";
+            string expectedMessage = "Số điện thoại không hợp lệ.";
+
+           
+            int countBefore = customer.CountAllCustomers();
+
+            // 3. Mở form thêm khách hàng
+            customer.OpenAddCustomerSection();
+            customer.AddCustomer(cccd, fullName, phone, email, address);
+
+            // 4. Đợi alert lỗi xuất hiện
+            var alerts = wait.Until(driver =>
+            {
+                var found = driver.FindElements(By.CssSelector("div.alert.alert-danger"))
+                    .Where(a => a.Displayed && !string.IsNullOrWhiteSpace(a.Text)).ToList();
+                return found.Count > 0 ? found : null;
+            });
+
+            // 5. Kiểm tra số lượng và nội dung thông báo lỗi
+            Assert.AreEqual(1, alerts.Count, $"Có {alerts.Count} thông báo lỗi hiển thị, mong đợi chỉ 1.");
+            string actualError = alerts[0].Text.Trim();
+            Assert.AreEqual(expectedMessage, actualError,
+                $"Nội dung lỗi không đúng. Mong đợi: \"{expectedMessage}\" - Thực tế: \"{actualError}\"");
+            Console.WriteLine("Hiển thị đúng một lỗi duy nhất: " + actualError);
+
+            // 6. Kiểm tra không có khách hàng nào được thêm
+            int countAfter = customer.CountAllCustomers();
+            Assert.AreEqual(countBefore, countAfter, "Hệ thống vẫn thêm khách hàng dù dữ liệu không hợp lệ.");
+            Console.WriteLine("Dữ liệu khách hàng không thêm -> PASS");
+
+        }
+        [TestMethod]
+        public void TestAddCustomer23()
+        {
+            // 1. Thiết lập dữ liệu đầu vào không hợp lệ
+            string cccd = "02021050766";
+            string fullName = "test";
+            string phone = "012346343243443"; 
+            string email = "nguyenfff";
+            string address = "123 Nguyễn Trãi, Hà Nội";
+            string expectedMessage = "Số điện thoại không hợp lệ.";
+
+
+            int countBefore = customer.CountAllCustomers();
+
+            // 3. Mở form thêm khách hàng
+            customer.OpenAddCustomerSection();
+            customer.AddCustomer(cccd, fullName, phone, email, address);
+
+            // 4. Đợi alert lỗi xuất hiện
+            var alerts = wait.Until(driver =>
+            {
+                var found = driver.FindElements(By.CssSelector("div.alert.alert-danger"))
+                    .Where(a => a.Displayed && !string.IsNullOrWhiteSpace(a.Text)).ToList();
+                return found.Count > 0 ? found : null;
+            });
+
+            // 5. Kiểm tra số lượng và nội dung thông báo lỗi
+            Assert.AreEqual(1, alerts.Count, $"Có {alerts.Count} thông báo lỗi hiển thị, mong đợi chỉ 1.");
+            string actualError = alerts[0].Text.Trim();
+            Assert.AreEqual(expectedMessage, actualError,
+                $"Nội dung lỗi không đúng. Mong đợi: \"{expectedMessage}\" - Thực tế: \"{actualError}\"");
+            Console.WriteLine("Hiển thị đúng một lỗi duy nhất: " + actualError);
+
+            // 6. Kiểm tra không có khách hàng nào được thêm
+            int countAfter = customer.CountAllCustomers();
+            Assert.AreEqual(countBefore, countAfter, "Hệ thống vẫn thêm khách hàng dù dữ liệu không hợp lệ.");
+            Console.WriteLine("Dữ liệu khách hàng không thêm -> PASS");
+
+        }
+        [TestMethod]
+        public void TestAddCustomer24()
+        {
+            // 1. Thiết lập dữ liệu đầu vào không hợp lệ
+            string cccd = "02021050766";
+            string fullName = "test";
+            string phone = "test";
+            string email = "nguyenfff";
+            string address = "123 Nguyễn Trãi, Hà Nội";
+            string expectedMessage = "Số điện thoại không hợp lệ.";
+
+
+            int countBefore = customer.CountAllCustomers();
+
+            // 3. Mở form thêm khách hàng
+            customer.OpenAddCustomerSection();
+            customer.AddCustomer(cccd, fullName, phone, email, address);
+
+            var fullNameInput = driver.FindElement(By.Id("phone"));
+            string validationMessage = fullNameInput.GetAttribute("validationMessage");
+            Assert.AreEqual("Please fill out this field.", validationMessage);
+            Console.WriteLine($"Thông báo lỗi HTML5 tại 'phone': {validationMessage}");
+
+            // 5. Kiểm tra form vẫn đang mở
+            bool isModalStillOpen = driver.FindElement(By.Id("addCustomerModal"))
+                .GetAttribute("class").Contains("show");
+            Assert.IsTrue(isModalStillOpen, "Form đã bị đóng dù dữ liệu không hợp lệ.");
+            Console.WriteLine("Form vẫn hiển thị sau khi nhập dữ liệu không hợp lệ.");
+
+            // 6. Kiểm tra không có khách hàng nào được thêm
+            int countAfter = customer.CountAllCustomers();
+            Assert.AreEqual(countBefore, countAfter, "Hệ thống vẫn thêm khách hàng dù dữ liệu không hợp lệ.");
+            Console.WriteLine("Dữ liệu khách hàng không thêm -> PASS");
+
+        }
+        [TestMethod]
+        public void TestAddCustomer25()
+        {
+            // 1. Thiết lập dữ liệu đầu vào không hợp lệ
+            string cccd = "02021050766";
+            string fullName = "test";
+            string phone = "123463432";
+            string email = "nguyenfff";
+            string address = "123 Nguyễn Trãi, Hà Nội";
+            string expectedMessage = "Số điện thoại không hợp lệ.";
+
+
+            int countBefore = customer.CountAllCustomers();
+
+            // 3. Mở form thêm khách hàng
+            customer.OpenAddCustomerSection();
+            customer.AddCustomer(cccd, fullName, phone, email, address);
+
+            // 4. Đợi alert lỗi xuất hiện
+            var alerts = wait.Until(driver =>
+            {
+                var found = driver.FindElements(By.CssSelector("div.alert.alert-danger"))
+                    .Where(a => a.Displayed && !string.IsNullOrWhiteSpace(a.Text)).ToList();
+                return found.Count > 0 ? found : null;
+            });
+
+            // 5. Kiểm tra số lượng và nội dung thông báo lỗi
+            Assert.AreEqual(1, alerts.Count, $"Có {alerts.Count} thông báo lỗi hiển thị, mong đợi chỉ 1.");
+            string actualError = alerts[0].Text.Trim();
+            Assert.AreEqual(expectedMessage, actualError,
+                $"Nội dung lỗi không đúng. Mong đợi: \"{expectedMessage}\" - Thực tế: \"{actualError}\"");
+            Console.WriteLine("Hiển thị đúng một lỗi duy nhất: " + actualError);
+
+            // 6. Kiểm tra không có khách hàng nào được thêm
+            int countAfter = customer.CountAllCustomers();
+            Assert.AreEqual(countBefore, countAfter, "Hệ thống vẫn thêm khách hàng dù dữ liệu không hợp lệ.");
+            Console.WriteLine("Dữ liệu khách hàng không thêm -> PASS");
+
+        }
+        /// Đóng Form 
+        ///--> Khi chưa nhập text
+        [TestMethod]
+        public void TestCustomer26()
+        {
+            customer.OpenAddCustomerSection(); // Mở form thêm khách hàng
+
+            customer.CloseForm1(); // Đóng form mà không nhập
+
+            bool isModalClosed = wait.Until(driver =>
+            {
+                try
+                {
+                    return !driver.FindElement(By.Id("addCustomerModal")).GetAttribute("class").Contains("show");
+                }
+                catch (NoSuchElementException)
+                {
+                    return true; // Modal đã bị remove
+                }
+            });
+
+            if (isModalClosed)
+                Console.WriteLine("Form thêm khách hàng đã được đóng thành công.");
+            else
+                Console.WriteLine("Form thêm khách hàng vẫn đang hiển thị.");
+
+            Assert.IsTrue(isModalClosed, "Form thêm khách hàng chưa được đóng sau khi nhấn nút Đóng.");
+        }
+
+        ///--> Khi nhập text nhưng chưa lưu
+        [TestMethod]
+        public void TestCustomer27()
+        {
+            customer.OpenAddCustomerSection(); // Mở form thêm
+
+            // Nhập dữ liệu rồi đóng (không submit)
+            customer.CloseForm2("123456789099", "Nguyễn Văn Test", "0912345678", "test@example.com", "123 Đường ABC");
+
+            bool isModalClosed = wait.Until(driver =>
+            {
+                try
+                {
+                    return !driver.FindElement(By.Id("addCustomerModal")).GetAttribute("class").Contains("show");
+                }
+                catch (NoSuchElementException)
+                {
+                    return true;
+                }
+            });
+
+            if (isModalClosed)
+                Console.WriteLine("Form thêm khách hàng đã được đóng thành công sau khi nhập dữ liệu.");
+            else
+                Console.WriteLine("Form thêm khách hàng vẫn đang hiển thị.");
+
+            Assert.IsTrue(isModalClosed, "Form thêm khách hàng chưa được đóng sau khi nhấn nút Đóng.");
+        }
+
 
     }
 }
