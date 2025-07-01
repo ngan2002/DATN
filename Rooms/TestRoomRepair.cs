@@ -1,4 +1,5 @@
-﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
+using DATN.Account;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 using OpenQA.Selenium;
 using OpenQA.Selenium.Chrome;
 using OpenQA.Selenium.Interactions;
@@ -6,6 +7,7 @@ using OpenQA.Selenium.Support.UI;
 using SeleniumExtras.WaitHelpers;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using static DATN.Rooms.RoomPageRepair;
@@ -35,14 +37,52 @@ namespace DATN.Rooms
             room = new RoomPageRepair(driver);
            
         }
+        /// <summary>
+        ///  Check thông tin data
+        /// </summary>
         [TestMethod]
-
-        /// Sửa phòng với thông tin hợn lệ cho Phòng chưa có dữ liệu xuất hiên combobox
+      
+        //Check dữ liệu data
+        /// 
         public void TestRepairRoom1()
         {
+            var roomPage = new RoomPageRepair(driver);
+            string roomNumber = "2100";
+
+            // B1: Lấy thông tin ban đầu từ danh sách
+            var roomInfo = roomPage.FindRoomByNumber(roomNumber);
+            Assert.IsNotNull(roomInfo, $"Không tìm thấy phòng [{roomNumber}] trong danh sách.");
+
+            string expectedRoomType = roomInfo.RoomType;
+            string expectedPrice = roomInfo.Price.Replace(".", "");
+            string expectedStatus = roomInfo.Status;
+
+            // B2: Mở form sửa phòng
+            roomPage.OpenEditRoomForm(roomNumber);
+
+            // B3: Lấy dữ liệu thực tế trong form sửa
+            var actualRoomNumber = driver.FindElement(By.Id("edit_room_number")).GetAttribute("value").Trim();
+            var actualPrice = driver.FindElement(By.Id("edit_price")).GetAttribute("value").Trim();
+            var actualRoomType = new SelectElement(driver.FindElement(By.Id("edit_type"))).SelectedOption.Text.Trim();
+            var actualStatus = new SelectElement(driver.FindElement(By.Id("edit_status"))).SelectedOption.Text.Trim();
+
+            // B4: So sánh
+            Assert.AreEqual(roomNumber, actualRoomNumber, "Số phòng không khớp.");
+            Assert.AreEqual(expectedRoomType, actualRoomType, "Loại phòng không khớp.");
+            Assert.AreEqual(expectedPrice, actualPrice.Replace(".", ""), "Giá phòng không khớp.");
+            Assert.AreEqual(expectedStatus, actualStatus, "Trạng thái phòng không khớp.");
+
+            Console.WriteLine($"Form sửa phòng [{roomNumber}] hiển thị đúng thông tin.");
+
+        }
+        [TestMethod]
+        /// Sửa phòng với thông tin hợn lệ cho Phòng chưa có dữ liệu xuất hiên combobox
+     
+        public void TestRepairRoom2()
+        {
             // Thông tin ban đầu
-            string oldRoomNumber = "21210";
-            string newRoomNumber = "12150";
+            string oldRoomNumber = "11";
+            string newRoomNumber = "1221";
             string newRoomType = "VIP";
             string newPrice = "20000";
             string newStatus = "Trống";
@@ -53,7 +93,7 @@ namespace DATN.Rooms
             }
             catch (Exception ex)
             {
-                Assert.Fail($" Không tìm thấy phòng [{oldRoomNumber}] để sửa: {ex.Message}");
+                Assert.Fail($"Không tìm thấy phòng [{oldRoomNumber}] để sửa: {ex.Message}");
             }
 
             // Bước 3: Cập nhật thông tin phòng
@@ -65,15 +105,16 @@ namespace DATN.Rooms
 
             // Bước 5: Kiểm tra phòng mới có trong danh sách phòng
             bool isExistAfter = room.IsRoomExists(newRoomNumber);
-            Assert.IsTrue(isExistAfter, $" Không tìm thấy phòng mới [{newRoomNumber}] sau khi sửa.");
-            Console.WriteLine($"Phòng [{newRoomNumber}] đã xuất hiện trong danh sách phòng sau khi sửa.");
+            Assert.IsTrue(isExistAfter, $"Không tìm thấy phòng mới [{newRoomNumber}] sau khi sửa.");
+            Console.WriteLine($" Phòng [{newRoomNumber}] đã xuất hiện trong danh sách phòng sau khi sửa.");
 
             // Bước 6: Kiểm tra lại toàn bộ thông tin phòng đã cập nhật
             var updatedRoom = room.FindRoomByNumber(newRoomNumber);
             Assert.AreEqual(newRoomNumber, updatedRoom.RoomNumber, "Số phòng chưa đúng.");
             Assert.AreEqual(newRoomType, updatedRoom.RoomType, "Loại phòng chưa đúng.");
-            Assert.AreEqual(newPrice, updatedRoom.Price.Replace(".", ""), "Giá phòng chưa đúng.");
-            //Assert.AreEqual(newStatus, updatedRoom.Status, "Tình trạng phòng chưa đúng.");
+            Assert.AreEqual(newPrice, updatedRoom.Price.Replace(".", ""), "Giá phòng không đúng.");
+            Assert.AreEqual(newStatus, updatedRoom.Status, "Trạng thái phòng chưa đúng.");
+
             // Bước 7: Kiểm tra thông tin phòng mới trong combobox đặt phòng
             string priceFormatted = Convert.ToDecimal(newPrice).ToString("#,##0").Replace(",", ".");
             room.VerifyRoomInBookingDropdown(
@@ -83,36 +124,38 @@ namespace DATN.Rooms
                 roomNumberOld: oldRoomNumber
             );
 
-            Console.WriteLine("TestRoomRepair1: Passed - Các thông tin được cập nhật thành công");
+            Console.WriteLine("TestRepairRoom2: Passed - Các thông tin được cập nhật thành công.");
         }
 
 
-        
+
+        // giá = 0
 
         [TestMethod]
-        public void TestRepairRoom2()
+        public void TestRepairRoom3()
         {
-            string oldRoomNumber = "3";
-            string invalidRoomNumber = "111";
-            string invalidRoomType = "VIP";
-            string invalidPrice = "0";
-            string invalidStatus = "Trống";
+            string oldRoomNumber = "1221";
+            string newPrice = "0";
 
-            // Lưu lại thông tin gốc trước khi sửa
-            var originalRoomInfo = room.FindRoomByNumber(oldRoomNumber);
-            Assert.IsNotNull(originalRoomInfo, "Không tìm thấy phòng gốc để lưu thông tin");
+            // B1: Lấy thông tin phòng hiện tại
+            var oldRoom = room.FindRoomByNumber(oldRoomNumber);
+            Assert.IsNotNull(oldRoom, $"Không tìm thấy phòng [{oldRoomNumber}] trong danh sách.");
 
+            string currentRoomType = oldRoom.RoomType;
+            string currentStatus = oldRoom.Status;
+
+            // B2: Mở form sửa
             try
             {
                 room.OpenEditRoomForm(oldRoomNumber);
             }
             catch (Exception ex)
             {
-                Assert.Fail($"Không tìm thấy phòng [{oldRoomNumber}] để sửa: {ex.Message}");
+                Assert.Fail($"Không thể mở form sửa phòng [{oldRoomNumber}]: {ex.Message}");
             }
 
-            // Gửi dữ liệu không hợp lệ
-            room.UpdateRoom(invalidRoomNumber, invalidRoomType, invalidPrice, invalidStatus);
+            // B3: Cập nhật chỉ trường giá
+            room.UpdateRoom1(oldRoomNumber, currentRoomType, newPrice, currentStatus);
 
             // Kiểm tra hiển thị lỗi
             try
@@ -131,42 +174,46 @@ namespace DATN.Rooms
                 Assert.Fail("Không tìm thấy thông báo lỗi với giá phòng = 0.");
             }
 
-            // Kiểm tra phòng không bị sửa đổi
-            var roomInfo = room.FindRoomByNumber(oldRoomNumber);
-            Assert.IsNotNull(roomInfo, "Không tìm thấy phòng cần kiểm tra sau khi sửa");
+    
 
-            Assert.AreEqual(originalRoomInfo.RoomNumber, roomInfo.RoomNumber, "Số phòng bị thay đổi.");
-            Assert.AreEqual(originalRoomInfo.RoomType, roomInfo.RoomType, "Loại phòng bị thay đổi.");
-            Assert.AreEqual(originalRoomInfo.Price, roomInfo.Price, "Giá phòng bị thay đổi.");
-            Assert.AreEqual(originalRoomInfo.Status, roomInfo.Status, "Tình trạng phòng bị thay đổi.");
+            // B5: Kiểm tra lại trong danh sách phòng
+            var updatedRoom = room.FindRoomByNumber(oldRoomNumber);
+            Assert.IsNotNull(updatedRoom, "Phòng sau khi sửa không còn trong danh sách.");
+            Assert.AreEqual(oldRoomNumber, updatedRoom.RoomNumber, "Số phòng bị thay đổi.");
+            Assert.AreEqual(currentRoomType, updatedRoom.RoomType, "Loại phòng bị thay đổi.");
+            Assert.AreNotEqual(newPrice, updatedRoom.Price.Replace(".", ""), "Giá phòng đã được cập nhật thành công.");
+            Console.WriteLine("TestRepairRoom3: Passed - Cập nhật giá không thành công.");
 
-            Console.WriteLine("TestRepairRoom2: Phòng giữ nguyên sau khi nhập giá trị không hợp lệ => TEST PASSED");
+            
         }
+        // giá aam
 
         [TestMethod]
-        public void TestRepairRoom3()
+        public void TestRepairRoom4()
         {
-            string oldRoomNumber = "3";
-            string invalidRoomNumber = "test";
-            string invalidRoomType = "VIP";
-            string invalidPrice = "-231";
-            string invalidStatus = "Trống";
+            string oldRoomNumber = "1221";
+            string newPrice = "-22";
 
-            // Lưu lại thông tin phòng gốc
-            var originalRoomInfo = room.FindRoomByNumber(oldRoomNumber);
-            Assert.IsNotNull(originalRoomInfo, "Không tìm thấy phòng gốc để lưu thông tin");
+            // B1: Lấy thông tin phòng hiện tại
+            var oldRoom = room.FindRoomByNumber(oldRoomNumber);
+            Assert.IsNotNull(oldRoom, $"Không tìm thấy phòng [{oldRoomNumber}] trong danh sách.");
 
+            string currentRoomType = oldRoom.RoomType;
+            string currentStatus = oldRoom.Status;
+
+            // B2: Mở form sửa
             try
             {
                 room.OpenEditRoomForm(oldRoomNumber);
             }
             catch (Exception ex)
             {
-                Assert.Fail($"Không tìm thấy phòng [{oldRoomNumber}] để sửa: {ex.Message}");
+                Assert.Fail($"Không thể mở form sửa phòng [{oldRoomNumber}]: {ex.Message}");
             }
 
-            // Gửi dữ liệu không hợp lệ
-            room.UpdateRoom(invalidRoomNumber, invalidRoomType, invalidPrice, invalidStatus);
+            // B3: Cập nhật chỉ trường giá
+            room.UpdateRoom1(oldRoomNumber, currentRoomType, newPrice, currentStatus);
+
 
             // Kiểm tra thông báo lỗi từ trình duyệt (HTML5 validation message)
             var giaPhongInput = driver.FindElement(By.Id("edit_price"));
@@ -189,42 +236,40 @@ namespace DATN.Rooms
             Assert.IsTrue(stillExists, "Phòng gốc đã bị xóa hoặc thay đổi sau khi nhập dữ liệu không hợp lệ!");
             Console.WriteLine("Phòng gốc vẫn giữ nguyên sau khi nhập dữ liệu không hợp lệ.");
 
-            // Kiểm tra lại toàn bộ thông tin phòng không bị thay đổi
-            var roomInfo = room.FindRoomByNumber(oldRoomNumber);
-            Assert.IsNotNull(roomInfo, "Không tìm thấy phòng sau khi kiểm tra");
-
-            Assert.AreEqual(originalRoomInfo.RoomNumber, roomInfo.RoomNumber, "Số phòng bị thay đổi.");
-            Assert.AreEqual(originalRoomInfo.RoomType, roomInfo.RoomType, "Loại phòng bị thay đổi.");
-            Assert.AreEqual(originalRoomInfo.Price, roomInfo.Price, "Giá phòng bị thay đổi.");
-            Assert.AreEqual(originalRoomInfo.Status, roomInfo.Status, "Tình trạng phòng bị thay đổi.");
-
-            Console.WriteLine($"TestRepairRoom3: Thông tin phòng không bị cập nhật => TEST PASSED");
+            // B5: Kiểm tra lại trong danh sách phòng
+            var updatedRoom = room.FindRoomByNumber(oldRoomNumber);
+            Assert.IsNotNull(updatedRoom, "Phòng sau khi sửa không còn trong danh sách.");
+            Assert.AreEqual(oldRoomNumber, updatedRoom.RoomNumber, "Số phòng bị thay đổi.");
+            Assert.AreEqual(currentRoomType, updatedRoom.RoomType, "Loại phòng bị thay đổi.");
+            Assert.AreNotEqual(newPrice, updatedRoom.Price.Replace(".", ""), "Giá phòng đã được cập nhật thành công.");
+            Console.WriteLine("TestRepairRoom: Passed - Cập nhật giá không thành công.");
         }
-
+        //gia > 100.000.000
         [TestMethod]
-        public void TestRepairRoom4()
+        public void TestRepairRoom5()
         {
-            // giá > 10000000
-            string oldRoomNumber = "3";
-            string invalidRoomNumber = "1023t";
-            string invalidRoomType = "VIP";
-            string invalidPrice = "10000000000000000000000000";
-            string invalidStatus = "Trống";
-            // Lưu lại thông tin gốc trước khi sửa
-            var originalRoomInfo = room.FindRoomByNumber(oldRoomNumber);
-            Assert.IsNotNull(originalRoomInfo, "Không tìm thấy phòng gốc để lưu thông tin");
+            string oldRoomNumber = "1221";
+            string newPrice = "1000000000000000000000000";
 
+            // B1: Lấy thông tin phòng hiện tại
+            var oldRoom = room.FindRoomByNumber(oldRoomNumber);
+            Assert.IsNotNull(oldRoom, $"Không tìm thấy phòng [{oldRoomNumber}] trong danh sách.");
+
+            string currentRoomType = oldRoom.RoomType;
+            string currentStatus = oldRoom.Status;
+
+            // B2: Mở form sửa
             try
             {
                 room.OpenEditRoomForm(oldRoomNumber);
             }
             catch (Exception ex)
             {
-                Assert.Fail($"Không tìm thấy phòng [{oldRoomNumber}] để sửa: {ex.Message}");
+                Assert.Fail($"Không thể mở form sửa phòng [{oldRoomNumber}]: {ex.Message}");
             }
 
-            // Gửi dữ liệu không hợp lệ
-            room.UpdateRoom(invalidRoomNumber, invalidRoomType, invalidPrice, invalidStatus);
+            // B3: Cập nhật chỉ trường giá
+            room.UpdateRoom1(oldRoomNumber, currentRoomType, newPrice, currentStatus);
 
             // Kiểm tra hiển thị lỗi
             try
@@ -246,12 +291,13 @@ namespace DATN.Rooms
             // Kiểm tra phòng không bị sửa đổi
             var roomInfo = room.FindRoomByNumber(oldRoomNumber);
             Assert.IsNotNull(roomInfo, "Không tìm thấy phòng cần kiểm tra sau khi sửa");
-
-            Assert.AreEqual(originalRoomInfo.RoomNumber, roomInfo.RoomNumber, "Số phòng bị thay đổi.");
-            Assert.AreEqual(originalRoomInfo.RoomType, roomInfo.RoomType, "Loại phòng bị thay đổi.");
-            Assert.AreEqual(originalRoomInfo.Price, roomInfo.Price, "Giá phòng bị thay đổi.");
-            Assert.AreEqual(originalRoomInfo.Status, roomInfo.Status, "Tình trạng phòng bị thay đổi.");
-            Console.WriteLine($"TestRoomRepair4: Phòng không bị cập nhật => TEST PASSED");
+            // B5: Kiểm tra lại trong danh sách phòng
+            var updatedRoom = room.FindRoomByNumber(oldRoomNumber);
+            Assert.IsNotNull(updatedRoom, "Phòng sau khi sửa không còn trong danh sách.");
+            Assert.AreEqual(oldRoomNumber, updatedRoom.RoomNumber, "Số phòng bị thay đổi.");
+            Assert.AreEqual(currentRoomType, updatedRoom.RoomType, "Loại phòng bị thay đổi.");
+            Assert.AreNotEqual(newPrice, updatedRoom.Price.Replace(".", ""), "Giá phòng đã được cập nhật thành công.");
+            Console.WriteLine("TestRepairRoom: Passed - Cập nhật giá không thành công.");
 
 
         }
@@ -260,26 +306,27 @@ namespace DATN.Rooms
         [TestMethod]
         public void TestRepairRoom6()
         {
-        
-            string oldRoomNumber = "3";
-            string invalidRoomNumber = "1023";
-            string invalidRoomType = "VIP";
-            string invalidPrice = "";
-            string invalidStatus = "Trống";
+            string oldRoomNumber = "1221";
+            string newPrice = "";
+            // B1: Lấy thông tin phòng hiện tại
+            var oldRoom = room.FindRoomByNumber(oldRoomNumber);
+            Assert.IsNotNull(oldRoom, $"Không tìm thấy phòng [{oldRoomNumber}] trong danh sách.");
 
-            // Lưu lại thông tin gốc trước khi sửa
-            var originalRoomInfo = room.FindRoomByNumber(oldRoomNumber);
-            Assert.IsNotNull(originalRoomInfo, "Không tìm thấy phòng gốc để lưu thông tin");
-            // Bước 1: Mở form sửa phòng
+            string currentRoomType = oldRoom.RoomType;
+            string currentStatus = oldRoom.Status;
+
+            // B2: Mở form sửa
             try
             {
                 room.OpenEditRoomForm(oldRoomNumber);
             }
             catch (Exception ex)
             {
-                Assert.Fail($" Không tìm thấy phòng [{oldRoomNumber}] để sửa: {ex.Message}");
+                Assert.Fail($"Không thể mở form sửa phòng [{oldRoomNumber}]: {ex.Message}");
             }
-            room.UpdateRoom(invalidRoomNumber, invalidRoomType, invalidPrice, invalidStatus);
+
+            // B3: Cập nhật chỉ trường giá
+            room.UpdateRoom1(oldRoomNumber, currentRoomType, newPrice, currentStatus);
             // Tạo biến đợi chờ
             var wait = new WebDriverWait(driver, TimeSpan.FromSeconds(10));
 
@@ -294,27 +341,25 @@ namespace DATN.Rooms
             bool isModalStillOpen = driver.FindElement(By.Id("editRoomModal")).GetAttribute("class").Contains("show");
             Assert.IsTrue(isModalStillOpen, "Form đã bị đóng dù dữ liệu không hợp lệ");
             Console.WriteLine("Form vẫn hiển thị sau khi nhập dữ liệu không hợp lệ.");
-            // Đóng form
+            // Đóng form thủ công
             driver.FindElement(By.CssSelector("div#editRoomModal button.btn.btn-secondary")).Click();
             Console.WriteLine("Đã nhấn nút Đóng form sửa phòng");
-            // Kiểm tra phòng gốc vẫn tồn tại
-            bool stillExists = room.IsRoomExists(oldRoomNumber);
-            Assert.IsTrue(stillExists, "Phòng gốc đã bị xóa hoặc đổi số sau khi nhập dữ liệu không hợp lệ!");
-            Console.WriteLine("Phòng gốc vẫn giữ nguyên sau khi nhập dữ liệu không hợp lệ.");
 
-            //Kiểm tra giá không bị cập nhật thành giá không
-            var roomInfo = room.FindRoomByNumber(oldRoomNumber);
-            Assert.IsNotNull(roomInfo, "Không tìm thấy phòng cần kiểm tra sau khi sửa");
+          
 
-            Assert.AreEqual(originalRoomInfo.RoomNumber, roomInfo.RoomNumber, "Số phòng bị thay đổi.");
-            Assert.AreEqual(originalRoomInfo.RoomType, roomInfo.RoomType, "Loại phòng bị thay đổi.");
-            Assert.AreEqual(originalRoomInfo.Price, roomInfo.Price, "Giá phòng bị thay đổi.");
-            Assert.AreEqual(originalRoomInfo.Status, roomInfo.Status, "Tình trạng phòng bị thay đổi.");
-            Console.WriteLine($"TestRoomRepair6: Giá phòng hiện tại: {roomInfo.Price} => KHÔNG bị cập nhật => TEST PASSED");
+        
+            // B5: Kiểm tra lại trong danh sách phòng
+            var updatedRoom = room.FindRoomByNumber(oldRoomNumber);
+            Assert.IsNotNull(updatedRoom, "Phòng sau khi sửa không còn trong danh sách.");
+            Assert.AreEqual(oldRoomNumber, updatedRoom.RoomNumber, "Số phòng bị thay đổi.");
+            Assert.AreEqual(currentRoomType, updatedRoom.RoomType, "Loại phòng bị thay đổi.");
+            Assert.AreNotEqual(newPrice, updatedRoom.Price.Replace(".", ""), "Giá phòng đã được cập nhật thành công.");
+            Console.WriteLine("TestRepairRoom: Passed - Cập nhật giá không thành công.");
+
         }
         //giá phòng nhập chữ
         [TestMethod]
-        public void TestRepairRoom5()
+        public void TestRepairRoom7()
         {
             // giá trống
             string oldRoomNumber = "2";
@@ -364,13 +409,13 @@ namespace DATN.Rooms
         }
         // Loại phòng để trống
         [TestMethod]
-        public void TestRepairRoom7()
+        public void TestRepairRoom8()
         {
-            string oldRoomNumber = "3";
-            string invalidRoomNumber = "103";
-            string invalidRoomType = "Chọn loại phòng";
-            string invalidPrice = "57899000";
-            string invalidStatus = "Trống";
+            string oldRoomNumber = "1221";
+            string newRoomNumber = "103";
+            string newRoomType = "Chọn loại phòng";
+            string newPrice = "57899000";
+            string newStatus = "Trống";
 
             // Lưu lại thông tin gốc trước khi sửa
             var originalRoomInfo = room.FindRoomByNumber(oldRoomNumber);
@@ -384,21 +429,20 @@ namespace DATN.Rooms
             {
                 Assert.Fail($" Không tìm thấy phòng [{oldRoomNumber}] để sửa: {ex.Message}");
             }
-            room.UpdateRoom(invalidRoomNumber, invalidRoomType, invalidPrice, invalidStatus);
-            // Tạo biến đợi chờ
+            room.UpdateRoom(newRoomNumber, newRoomType, newPrice, newStatus);
+        
             var wait = new WebDriverWait(driver, TimeSpan.FromSeconds(10));
 
-            // Tìm lại input và lấy thông báo lỗi
             var LoaiPhongSelect = driver.FindElement(By.Id("edit_type"));
             string validationMessage = LoaiPhongSelect.GetAttribute("validationMessage");
-            // Kiểm tra xem có đúng thông báo mong đợi không
+         
             Assert.AreEqual("Please select an item in the list.", validationMessage);
             Console.WriteLine($"Loại phòng hiển thị thông báo lỗi [{validationMessage}] ");
-            // Đảm bảo form vẫn đang mở (không submit được)
+          
             bool isModalStillOpen = driver.FindElement(By.Id("editRoomModal")).GetAttribute("class").Contains("show");
             Assert.IsTrue(isModalStillOpen, "Form đã bị đóng dù dữ liệu không hợp lệ");
             Console.WriteLine("Form vẫn hiển thị sau khi nhập dữ liệu không hợp lệ.");
-            // Đóng form
+         
             driver.FindElement(By.CssSelector("div#editRoomModal button.btn.btn-secondary")).Click();
             Console.WriteLine("Đã nhấn nút Đóng form sửa phòng");
             // Kiểm tra phòng gốc vẫn tồn tại
@@ -414,18 +458,18 @@ namespace DATN.Rooms
             Assert.AreEqual(originalRoomInfo.RoomType, roomInfo.RoomType, "Loại phòng bị thay đổi.");
             Assert.AreEqual(originalRoomInfo.Price, roomInfo.Price, "Giá phòng bị thay đổi.");
             Assert.AreEqual(originalRoomInfo.Status, roomInfo.Status, "Tình trạng phòng bị thay đổi.");
-            Console.WriteLine($"TestRoomRepair7: Loại phòng hiện tại: {roomInfo.RoomType} => KHÔNG bị cập nhật => TEST PASSED");
+            Console.WriteLine($"TestRoomRepair: Loại phòng hiện tại: {roomInfo.RoomType} => KHÔNG bị cập nhật => TEST PASSED");
         }
         //Số phòng trống
         [TestMethod]
-        public void TestRepairRoom8()
+        public void TestRepairRoom9()
         {
            
-            string oldRoomNumber = "3";
-            string invalidRoomNumber = "";
-            string invalidRoomType = "VIP";
-            string invalidPrice = "57899000";
-            string invalidStatus = "Trống";
+            string oldRoomNumber = "1221";
+            string newRoomNumber = "";
+            string newRoomType = "VIP";
+            string newPrice = "57899000";
+            string newStatus = "Trống";
 
             // Lưu lại thông tin gốc trước khi sửa
             var originalRoomInfo = room.FindRoomByNumber(oldRoomNumber);
@@ -439,21 +483,21 @@ namespace DATN.Rooms
             {
                 Assert.Fail($" Không tìm thấy phòng [{oldRoomNumber}] để sửa: {ex.Message}");
             }
-            room.UpdateRoom(invalidRoomNumber, invalidRoomType, invalidPrice, invalidStatus);
-            // Tạo biến đợi chờ
+            room.UpdateRoom(newRoomNumber, newRoomType, newPrice, newStatus);
+         
             var wait = new WebDriverWait(driver, TimeSpan.FromSeconds(10));
 
-            // Tìm lại input và lấy thông báo lỗi
+         
             var giaPhongInput = driver.FindElement(By.Id("edit_room_number"));
             string validationMessage = giaPhongInput.GetAttribute("validationMessage");
-            // Kiểm tra xem có đúng thông báo mong đợi không
+          
             Assert.AreEqual("Please fill out this field.", validationMessage);
             Console.WriteLine($"Số phòng hiển thị thông báo lỗi [{validationMessage}] ");
-            // Đảm bảo form vẫn đang mở (không submit được)
+         
             bool isModalStillOpen = driver.FindElement(By.Id("editRoomModal")).GetAttribute("class").Contains("show");
             Assert.IsTrue(isModalStillOpen, "Form đã bị đóng dù dữ liệu không hợp lệ");
             Console.WriteLine("Form vẫn hiển thị sau khi nhập dữ liệu không hợp lệ.");
-            // Đóng form
+        
             driver.FindElement(By.CssSelector("div#editRoomModal button.btn.btn-secondary")).Click();
             Console.WriteLine("Đã nhấn nút Đóng form sửa phòng");
             // Kiểm tra phòng gốc vẫn tồn tại
@@ -472,20 +516,20 @@ namespace DATN.Rooms
         }
         /// Phòng trùng + loại phòng kh hợp lệ
         [TestMethod]
-        public void TestRepairRoom9()
+        public void TestRepairRoom10()
         {
-            
-            string oldRoomNumber = "2";
-            string invalidRoomNumber = "121";
-            string invalidRoomType = "Chọn loại phòng";
-            string invalidPrice = "57899000";
-            string invalidStatus = "Trống";
+
+            string oldRoomNumber = "1221";
+            string newRoomNumber = "121111";
+            string newRoomType = "Chọn loại phòng";  // Đây là trạng thái chưa chọn hợp lệ
+            string newPrice = "57899000";
+            string newStatus = "Trống";
 
             string expectedMessage = "Phòng đã tồn tại";
 
             // Lưu lại thông tin gốc trước khi sửa
             var originalRoomInfo = room.FindRoomByNumber(oldRoomNumber);
-            Assert.IsNotNull(originalRoomInfo, "Không tìm thấy phòng gốc để lưu thông tin");
+            Assert.IsNotNull(originalRoomInfo, $"Không tìm thấy phòng gốc [{oldRoomNumber}] để lưu thông tin");
 
             try
             {
@@ -493,29 +537,32 @@ namespace DATN.Rooms
             }
             catch (Exception ex)
             {
-                Assert.Fail($" Không tìm thấy phòng [{oldRoomNumber}] để sửa: {ex.Message}");
+                Assert.Fail($"Không mở được form sửa phòng [{oldRoomNumber}]: {ex.Message}");
             }
-            room.UpdateRoom(invalidRoomNumber, invalidRoomType, invalidPrice, invalidStatus);
+
+            // Cập nhật với loại phòng không hợp lệ
+            room.UpdateRoom(newRoomNumber, newRoomType, newPrice, newStatus);
+
             var wait = new WebDriverWait(driver, TimeSpan.FromSeconds(10));
-            // Tìm lại input và lấy thông báo lỗi
+
+            // Kiểm tra validation của loại phòng
             var loaiPhongInput = driver.FindElement(By.Id("edit_type"));
             string validationMessage = loaiPhongInput.GetAttribute("validationMessage");
-            
-          
-            // Kiểm tra xem có đúng thông báo mong đợi không
-            Assert.AreEqual("Please select an item in the list.", validationMessage);
-            Console.WriteLine($"Loại phòng hiển thị thông báo lỗi [{validationMessage}] ");
 
-            // Đảm bảo form vẫn đang mở (không submit được)
+            Assert.AreEqual("Please select an item in the list.", validationMessage, "Không có thông báo lỗi loại phòng.");
+            Console.WriteLine($"Loại phòng hiển thị thông báo lỗi: [{validationMessage}]");
+
+            // Form vẫn đang mở
             bool isModalStillOpen = driver.FindElement(By.Id("editRoomModal")).GetAttribute("class").Contains("show");
-            Assert.IsTrue(isModalStillOpen, "Form đã bị đóng dù dữ liệu không hợp lệ");
+            Assert.IsTrue(isModalStillOpen, "Form đã bị đóng dù dữ liệu không hợp lệ.");
             Console.WriteLine("Form vẫn hiển thị sau khi nhập dữ liệu không hợp lệ.");
 
-            // Đóng form
+            // Đóng form thủ công
             driver.FindElement(By.CssSelector("#editRoomModal .btn.btn-secondary")).Click();
-            Console.WriteLine("Đã nhấn nút Đóng form thêm phòng.");
+            Console.WriteLine("Đã nhấn nút Đóng form sửa phòng.");
 
-            bool ErrorDisplayed = false;
+            // Kiểm tra lỗi phòng trùng (nếu có)
+            bool errorDisplayed = false;
             try
             {
                 var errorElement = wait.Until(driver =>
@@ -526,53 +573,53 @@ namespace DATN.Rooms
 
                 if (errorElement.Text.Contains(expectedMessage))
                 {
-                    ErrorDisplayed = true;
-                    Console.WriteLine("Tìm thấy lỗi phòng trùng: " + expectedMessage);
+                    errorDisplayed = true;
+                    Console.WriteLine("Tìm thấy thông báo lỗi phòng trùng: " + expectedMessage);
                 }
                 else
                 {
-                    Console.WriteLine("Có hiển thị lỗi khác, nhưng không phải lỗi phòng trùng.");
+                    Console.WriteLine("Có lỗi khác hiển thị, nhưng không phải lỗi phòng trùng.");
                 }
             }
             catch (WebDriverTimeoutException)
             {
-                ErrorDisplayed = false;
-                Console.WriteLine("Không tìm thấy lỗi phòng trùng.");
+                Console.WriteLine(" Không thấy thông báo lỗi phòng trùng → đúng vì lỗi loại phòng ưu tiên.");
             }
-            ;
-          
-            // Kiểm tra phòng gốc vẫn tồn tại
+
+            // Đảm bảo phòng gốc vẫn còn nguyên
             bool stillExists = room.IsRoomExists(oldRoomNumber);
-            Assert.IsTrue(stillExists, "Phòng gốc đã bị xóa hoặc đổi số sau khi nhập dữ liệu không hợp lệ!");
-            Console.WriteLine("Phòng gốc vẫn giữ nguyên sau khi nhập dữ liệu không hợp lệ.");
+            Assert.IsTrue(stillExists, "Phòng gốc đã bị đổi số hoặc xóa sau khi lỗi.");
+            Console.WriteLine($"Phòng gốc [{oldRoomNumber}] vẫn giữ nguyên sau lỗi.");
 
-            int roomCount = room.CountRoom(invalidRoomNumber);
-            Assert.AreEqual(1, roomCount, $"Phòng [{invalidRoomNumber}] xuất hiện {roomCount} lần — hệ thống đã cho cập nhật trùng phòng");
-            Console.WriteLine($"Phòng [{invalidRoomNumber}] chỉ xuất hiện {roomCount} lần trong danh sách phòng -> Pass");
+            // Đảm bảo phòng mới KHÔNG được tạo
+            int newRoomAppearCount = room.CountRoomExact(newRoomNumber);
+            Assert.AreEqual(0, newRoomAppearCount, $"Phòng [{newRoomNumber}] xuất hiện {newRoomAppearCount} lần dù không nên được tạo.");
+            Console.WriteLine($"Phòng [{newRoomNumber}] không xuất hiện trong danh sách phòng → Pass");
 
-
+            // Kiểm tra lại thông tin phòng gốc không bị thay đổi
             var roomInfo = room.FindRoomByNumber(oldRoomNumber);
-            Assert.IsNotNull(roomInfo, "Không tìm thấy phòng cần kiểm tra sau khi sửa");
+            Assert.IsNotNull(roomInfo, "Không tìm thấy phòng gốc sau khi test.");
 
             Assert.AreEqual(originalRoomInfo.RoomNumber, roomInfo.RoomNumber, "Số phòng bị thay đổi.");
             Assert.AreEqual(originalRoomInfo.RoomType, roomInfo.RoomType, "Loại phòng bị thay đổi.");
             Assert.AreEqual(originalRoomInfo.Price, roomInfo.Price, "Giá phòng bị thay đổi.");
             Assert.AreEqual(originalRoomInfo.Status, roomInfo.Status, "Tình trạng phòng bị thay đổi.");
-            Console.WriteLine("TestRoom9: Passed - Ưu tiên kiểm tra lỗi loại phòng trống, không xét đến lỗi trùng phòng.-> phòng kh được cập nhật");
+
+            Console.WriteLine("TestRepairRoom10: PASSED – Ưu tiên kiểm tra lỗi loại phòng, phòng không bị cập nhật.");
         }
         /// <summary>
         /// Phòng trùng + giá phòng trống
         /// </summary>
         [TestMethod]
-        public void TestRoomRepair10()
+        public void TestRoomRepair11()
         {
-            string oldRoomNumber = "107";
-            string invalidRoomNumber = "121";
-            string invalidRoomType = "Chọn loại phòng";
-            string invalidPrice = "57899000";
-            string invalidStatus = "Trống";
+            string oldRoomNumber = "1221";
+            string newRoomNumber = "test0107";
+            string newRoomType = "VIP";
+            string newPrice = "";
+            string newStatus = "Trống";
 
-            string expectedMessage = "Phòng đã tồn tại";
+            string Message = "Phòng đã tồn tại";
 
             // Lưu lại thông tin gốc trước khi sửa
             var originalRoomInfo = room.FindRoomByNumber(oldRoomNumber);
@@ -586,7 +633,7 @@ namespace DATN.Rooms
             {
                 Assert.Fail($" Không tìm thấy phòng [{oldRoomNumber}] để sửa: {ex.Message}");
             }
-            room.UpdateRoom(invalidRoomNumber, invalidRoomType, invalidPrice, invalidStatus);
+            room.UpdateRoom(newRoomNumber, newRoomType, newPrice, newStatus);
             var wait = new WebDriverWait(driver, TimeSpan.FromSeconds(10));
 
             // Tìm lại input và lấy thông báo lỗi
@@ -614,10 +661,10 @@ namespace DATN.Rooms
                     return (elem.Displayed && !string.IsNullOrWhiteSpace(elem.Text)) ? elem : null;
                 });
 
-                if (errorElement.Text.Contains(expectedMessage))
+                if (errorElement.Text.Contains(Message))
                 {
                    ErrorDisplayed = true;
-                    Console.WriteLine("Tìm thấy lỗi phòng trùng: " + expectedMessage);
+                    Console.WriteLine("Tìm thấy lỗi phòng trùng: " + Message);
                 }
                 else
                 {
@@ -635,9 +682,9 @@ namespace DATN.Rooms
             Assert.IsTrue(stillExists, "Phòng gốc đã bị xóa hoặc đổi số sau khi nhập dữ liệu không hợp lệ!");
             Console.WriteLine("Phòng gốc vẫn giữ nguyên sau khi nhập dữ liệu không hợp lệ.");
 
-            int roomCount = room.CountRoom(invalidRoomNumber);
-            Assert.AreEqual(1, roomCount, $"Phòng [{invalidRoomNumber}] xuất hiện {roomCount} lần — hệ thống đã cho cập nhật trùng phòng");
-            Console.WriteLine($"Phòng [{invalidRoomNumber}] chỉ xuất hiện {roomCount} lần trong danh sách phòng -> Pass");
+            int newRoomAppearCount = room.CountRoomExact(newRoomNumber);
+            Assert.AreEqual(0, newRoomAppearCount, $"Phòng [{newRoomNumber}] xuất hiện {newRoomAppearCount} lần dù không nên được tạo.");
+            Console.WriteLine($"Phòng [{newRoomNumber}] không xuất hiện trong danh sách phòng → Pass");
 
             var roomInfo = room.FindRoomByNumber(oldRoomNumber);
             Assert.IsNotNull(roomInfo, "Không tìm thấy phòng cần kiểm tra sau khi sửa");
@@ -647,21 +694,21 @@ namespace DATN.Rooms
             Assert.AreEqual(originalRoomInfo.Price, roomInfo.Price, "Giá phòng bị thay đổi.");
             Assert.AreEqual(originalRoomInfo.Status, roomInfo.Status, "Tình trạng phòng bị thay đổi.");
 
-            Console.WriteLine("TestRepair10: Passed - Ưu tiên kiểm tra lỗi giá phòng trống, không xét đến lỗi trùng phòng.-> phòng không được cập nhật ");
+            Console.WriteLine("TestRepair: Passed - Ưu tiên kiểm tra lỗi giá phòng trống, không xét đến lỗi trùng phòng.-> phòng không được cập nhật ");
         }
         /// <summary>
         /// Phòng trùng + giá phòng nhập chữ
         /// </summary>
         [TestMethod]
-        public void TestRoomRepair11()
+        public void TestRoomRepair12()
         {
-            string oldRoomNumber = "107";
-            string invalidRoomNumber = "121";
-            string invalidRoomType = "Chọn loại phòng";
-            string invalidPrice = "test";
-            string invalidStatus = "Trống";
+            string oldRoomNumber = "1221";
+            string newRoomNumber = "test0107";
+            string newRoomType = "VIP";
+            string newPrice = "test";
+            string newStatus = "Trống";
 
-            string expectedMessage = "Phòng đã tồn tại";
+            string Message = "Phòng đã tồn tại";
 
             // Lưu lại thông tin gốc trước khi sửa
             var originalRoomInfo = room.FindRoomByNumber(oldRoomNumber);
@@ -675,7 +722,7 @@ namespace DATN.Rooms
             {
                 Assert.Fail($" Không tìm thấy phòng [{oldRoomNumber}] để sửa: {ex.Message}");
             }
-            room.UpdateRoom(invalidRoomNumber, invalidRoomType, invalidPrice, invalidStatus);
+            room.UpdateRoom(newRoomNumber, newRoomType, newPrice, newStatus);
             var wait = new WebDriverWait(driver, TimeSpan.FromSeconds(10));
 
             // Tìm lại input và lấy thông báo lỗi
@@ -704,10 +751,10 @@ namespace DATN.Rooms
                     return (elem.Displayed && !string.IsNullOrWhiteSpace(elem.Text)) ? elem : null;
                 });
 
-                if (errorElement.Text.Contains(expectedMessage))
+                if (errorElement.Text.Contains(Message))
                 {
                     ErrorDisplayed = true;
-                    Console.WriteLine("Tìm thấy lỗi phòng trùng: " + expectedMessage);
+                    Console.WriteLine("Tìm thấy lỗi phòng trùng: " + Message);
                 }
                 else
                 {
@@ -726,9 +773,9 @@ namespace DATN.Rooms
             Console.WriteLine("Phòng gốc vẫn giữ nguyên sau khi nhập dữ liệu không hợp lệ.");
 
 
-            int roomCount = room.CountRoom(invalidRoomNumber);
-            Assert.AreEqual(1, roomCount, $"Phòng [{invalidRoomNumber}] xuất hiện {roomCount} lần — hệ thống đã cho cập nhật trùng phòng");
-            Console.WriteLine($"Phòng [{invalidRoomNumber}] chỉ xuất hiện {roomCount} lần trong danh sách phòng -> Pass");
+            int newRoomAppearCount = room.CountRoomExact(newRoomNumber);
+            Assert.AreEqual(0, newRoomAppearCount, $"Phòng [{newRoomNumber}] xuất hiện {newRoomAppearCount} lần dù không nên được tạo.");
+            Console.WriteLine($"Phòng [{newRoomNumber}] không xuất hiện trong danh sách phòng → Pass");
 
             var roomInfo = room.FindRoomByNumber(oldRoomNumber);
             Assert.IsNotNull(roomInfo, "Không tìm thấy phòng cần kiểm tra sau khi sửa");
@@ -738,21 +785,21 @@ namespace DATN.Rooms
             Assert.AreEqual(originalRoomInfo.Price, roomInfo.Price, "Giá phòng bị thay đổi.");
             Assert.AreEqual(originalRoomInfo.Status, roomInfo.Status, "Tình trạng phòng bị thay đổi.");
 
-            Console.WriteLine("TestRepair11:Passed - Ưu tiên kiểm tra lỗi giá phòng nhập chữ, không xét đến lỗi trùng phòng.-> phòng kh được cập nhật");
+            Console.WriteLine("TestRepair:Passed - Ưu tiên kiểm tra lỗi giá phòng nhập chữ, không xét đến lỗi trùng phòng.-> phòng kh được cập nhật");
         }
         /// <summary>
         /// Phòng trùng + giá phòng < 0
         /// </summary>
         [TestMethod]
-        public void TestRoomRepair12()
+        public void TestRoomRepair13()
         {
-            string oldRoomNumber = "3";
-            string invalidRoomNumber = "121";
-            string invalidRoomType = "VIP";
-            string invalidPrice = "-2000";
-            string invalidStatus = "Trống";
+            string oldRoomNumber = "1221";
+            string newRoomNumber = "test0107";
+            string newRoomType = "VIP";
+            string newPrice = "-2000";
+            string newStatus = "Trống";
 
-            string expectedMessage = "Phòng đã tồn tại";
+            string Message = "Phòng đã tồn tại";
 
             // Lưu lại thông tin gốc trước khi sửa
             var originalRoomInfo = room.FindRoomByNumber(oldRoomNumber);
@@ -765,7 +812,7 @@ namespace DATN.Rooms
             {
                 Assert.Fail($" Không tìm thấy phòng [{oldRoomNumber}] để sửa: {ex.Message}");
             }
-            room.UpdateRoom(invalidRoomNumber, invalidRoomType, invalidPrice, invalidStatus);
+            room.UpdateRoom(newRoomNumber, newRoomType, newPrice, newStatus);
             var wait = new WebDriverWait(driver, TimeSpan.FromSeconds(10));
 
             // Tìm lại input và lấy thông báo lỗi
@@ -794,10 +841,10 @@ namespace DATN.Rooms
                     return (elem.Displayed && !string.IsNullOrWhiteSpace(elem.Text)) ? elem : null;
                 });
 
-                if (errorElement.Text.Contains(expectedMessage))
+                if (errorElement.Text.Contains(Message))
                 {
                     ErrorDisplayed = true;
-                    Console.WriteLine("Tìm thấy lỗi phòng trùng: " + expectedMessage);
+                    Console.WriteLine("Tìm thấy lỗi phòng trùng: " + Message);
                 }
                 else
                 {
@@ -816,9 +863,9 @@ namespace DATN.Rooms
             Assert.IsTrue(stillExists, "Phòng gốc đã bị xóa hoặc đổi số sau khi nhập dữ liệu không hợp lệ!");
             Console.WriteLine("Phòng gốc vẫn giữ nguyên sau khi nhập dữ liệu không hợp lệ.");
 
-            int roomCount = room.CountRoom(invalidRoomNumber);
-            Assert.AreEqual(1, roomCount, $"Phòng [{invalidRoomNumber}] xuất hiện {roomCount} lần — hệ thống đã cho cập nhật trùng phòng");
-            Console.WriteLine($"Phòng [{invalidRoomNumber}] chỉ xuất hiện {roomCount} lần trong danh sách phòng -> Pass");
+            int newRoomAppearCount = room.CountRoomExact(newRoomNumber);
+            Assert.AreEqual(0, newRoomAppearCount, $"Phòng [{newRoomNumber}] xuất hiện {newRoomAppearCount} lần dù không nên được tạo.");
+            Console.WriteLine($"Phòng [{newRoomNumber}] không xuất hiện trong danh sách phòng → Pass");
 
             var roomInfo = room.FindRoomByNumber(oldRoomNumber);
             Assert.IsNotNull(roomInfo, "Không tìm thấy phòng cần kiểm tra sau khi sửa");
@@ -828,19 +875,19 @@ namespace DATN.Rooms
             Assert.AreEqual(originalRoomInfo.Price, roomInfo.Price, "Giá phòng bị thay đổi.");
             Assert.AreEqual(originalRoomInfo.Status, roomInfo.Status, "Tình trạng phòng bị thay đổi.");
 
-            Console.WriteLine("TestRoomRepair12:Passed - Ưu tiên kiểm tra lỗi giá phòng âm, không xét đến lỗi trùng phòng.-> phòng kh được cập nhật  ");
+            Console.WriteLine("TestRoomRepair:Passed - Ưu tiên kiểm tra lỗi giá phòng âm, không xét đến lỗi trùng phòng.-> phòng kh được cập nhật  ");
         }
         /// <summary>
         /// Phòng trùng + giá phòng > 10000000
         /// </summary>
         [TestMethod]
-        public void TestRoomRepair13()
+        public void TestRoomRepair14()
         {
-            string oldRoomNumber = "3";
-            string invalidRoomNumber = "121"; // Trùng cũng không xét, ưu tiên lỗi giá
-            string invalidRoomType = "VIP";
-            string invalidPrice = "1000000000000000"; // Giá quá lớn, không hợp lệ
-            string invalidStatus = "Trống";
+            string oldRoomNumber = "1221";
+            string newRoomNumber = "test0107";
+            string newRoomType = "VIP";
+            string newPrice = "1000000000000000"; 
+            string newStatus = "Trống";
 
             string expectedError = "Giá trị nhập không hợp lệ";
 
@@ -856,7 +903,7 @@ namespace DATN.Rooms
                 Assert.Fail($" Không tìm thấy phòng [{oldRoomNumber}] để sửa: {ex.Message}");
             }
             // Bước 2: Mở form sửa và nhập dữ liệu không hợp lệ
-            room.UpdateRoom(invalidRoomNumber, invalidRoomType, invalidPrice, invalidStatus);
+            room.UpdateRoom(newRoomNumber, newRoomType, newPrice, newStatus);
 
             // Bước 3: Kiểm tra thông báo lỗi
             // Chờ nếu cần
@@ -888,10 +935,10 @@ namespace DATN.Rooms
             Console.WriteLine("Phòng gốc vẫn giữ nguyên sau khi nhập dữ liệu không hợp lệ.");
 
             // Bước 5: Kiểm tra phòng trùng không bị thêm/sửa (nếu có)
-            int roomCount = room.CountRoom(invalidRoomNumber);
-            Assert.AreEqual(1, roomCount,
-                $"Phòng [{invalidRoomNumber}] xuất hiện {roomCount} lần — hệ thống đã cập nhật/sửa sai.");
-            Console.WriteLine($"Phòng [{invalidRoomNumber}] chỉ xuất hiện {roomCount} lần trong danh sách phòng => PASSED.");
+            int roomCount = room.CountRoom(newRoomNumber);
+            int newRoomAppearCount = room.CountRoomExact(newRoomNumber);
+            Assert.AreEqual(0, newRoomAppearCount, $"Phòng [{newRoomNumber}] xuất hiện {newRoomAppearCount} lần dù không nên được tạo.");
+            Console.WriteLine($"Phòng [{newRoomNumber}] không xuất hiện trong danh sách phòng → Pass");
 
             // Bước 6: Kiểm tra dữ liệu phòng không thay đổi
             var roomInfo = room.FindRoomByNumber(oldRoomNumber);
@@ -902,7 +949,7 @@ namespace DATN.Rooms
             Assert.AreEqual(originalRoomInfo.Price, roomInfo.Price, "Giá phòng đã bị thay đổi.");
             Assert.AreEqual(originalRoomInfo.Status, roomInfo.Status, "Tình trạng phòng đã bị thay đổi.");
 
-            Console.WriteLine("TestRoomRepair13: PASSED — Ưu tiên kiểm tra lỗi giá phòng lớn bất thường => Phòng KHÔNG bị cập nhật.");
+            Console.WriteLine("TestRoomRepair: PASSED — Ưu tiên kiểm tra lỗi giá phòng lớn bất thường => Phòng KHÔNG bị cập nhật.");
         }
 
 
@@ -910,15 +957,15 @@ namespace DATN.Rooms
         /// Phòng trùng + giá phòng = 0
         /// </summary>
         [TestMethod]
-        public void TestRoomRepair14()
+        public void TestRoomRepair15()
         {
-            string oldRoomNumber = "3";
-            string invalidRoomNumber = "121"; // Trùng cũng không xét, ưu tiên lỗi giá
-            string invalidRoomType = "VIP";
-            string invalidPrice = "0"; // Giá quá lớn, không hợp lệ
-            string invalidStatus = "Trống";
+            string oldRoomNumber = "1221";
+            string newRoomNumber = "test0107";
+            string newRoomType = "VIP";
+            string newPrice = "0"; 
+            string newStatus = "Trống";
 
-            string expectedError = "Giá trị nhập không hợp lệ";
+            string Error = "Giá trị nhập không hợp lệ";
 
             // Bước 1: Lưu lại thông tin gốc của phòng trước khi sửa
             var originalRoomInfo = room.FindRoomByNumber(oldRoomNumber);
@@ -932,7 +979,7 @@ namespace DATN.Rooms
                 Assert.Fail($" Không tìm thấy phòng [{oldRoomNumber}] để sửa: {ex.Message}");
             }
             // Bước 2: Mở form sửa và nhập dữ liệu không hợp lệ
-            room.UpdateRoom(invalidRoomNumber, invalidRoomType, invalidPrice, invalidStatus);
+            room.UpdateRoom(newRoomNumber, newRoomType, newPrice, newStatus);
 
             // Bước 3: Kiểm tra thông báo lỗi
             // Chờ nếu cần
@@ -953,8 +1000,8 @@ namespace DATN.Rooms
 
             // Kiểm tra nội dung lỗi đúng
             string actualError = alerts[0].Text.Trim();
-            Assert.AreEqual(expectedError, actualError,
-                $"Nội dung lỗi không đúng. Mong đợi: \"{expectedError}\" - Thực tế: \"{actualError}\"");
+            Assert.AreEqual(Error, actualError,
+                $"Nội dung lỗi không đúng. Mong đợi: \"{Error}\" - Thực tế: \"{actualError}\"");
 
             Console.WriteLine("Hiển thị đúng một lỗi duy nhất: " + actualError);
 
@@ -964,10 +1011,10 @@ namespace DATN.Rooms
             Console.WriteLine("Phòng gốc vẫn giữ nguyên sau khi nhập dữ liệu không hợp lệ.");
 
             // Bước 5: Kiểm tra phòng trùng không bị thêm/sửa (nếu có)
-            int roomCount = room.CountRoom(invalidRoomNumber);
-            Assert.AreEqual(1, roomCount,
-                $"Phòng [{invalidRoomNumber}] xuất hiện {roomCount} lần — hệ thống đã cập nhật/sửa sai.");
-            Console.WriteLine($"Phòng [{invalidRoomNumber}] chỉ xuất hiện {roomCount} lần trong danh sách phòng => PASSED.");
+            int roomCount = room.CountRoom(newRoomNumber);
+            int newRoomAppearCount = room.CountRoomExact(newRoomNumber);
+            Assert.AreEqual(0, newRoomAppearCount, $"Phòng [{newRoomNumber}] xuất hiện {newRoomAppearCount} lần dù không nên được tạo.");
+            Console.WriteLine($"Phòng [{newRoomNumber}] không xuất hiện trong danh sách phòng → Pass");
 
             // Bước 6: Kiểm tra dữ liệu phòng không thay đổi
             var roomInfo = room.FindRoomByNumber(oldRoomNumber);
@@ -977,20 +1024,20 @@ namespace DATN.Rooms
             Assert.AreEqual(originalRoomInfo.RoomType, roomInfo.RoomType, "Loại phòng đã bị thay đổi.");
             Assert.AreEqual(originalRoomInfo.Price, roomInfo.Price, "Giá phòng đã bị thay đổi.");
             Assert.AreEqual(originalRoomInfo.Status, roomInfo.Status, "Tình trạng phòng đã bị thay đổi.");
-            Console.WriteLine("TestRoomRepair14:Passed - Ưu tiên kiểm tra lỗi giá phòng  = 0, không xét đến lỗi trùng phòng.-> phòng kh được cập nhật  ");
+            Console.WriteLine("TestRoomRepair:Passed - Ưu tiên kiểm tra lỗi giá phòng  = 0, không xét đến lỗi trùng phòng.-> phòng kh được cập nhật  ");
         }
         /// <summary>
         /// Phòng trùng 
         /// </summary>
         [TestMethod]
-        public void TestRoomRepair15()
+        public void TestRoomRepair16()
         {
-            string oldRoomNumber = "3";
-            string invalidRoomNumber = "121"; // Trùng cũng không xét, ưu tiên lỗi giá
-            string invalidRoomType = "VIP";
-            string invalidPrice = "20000000"; 
-            string invalidStatus = "Trống";
-
+            string oldRoomNumber = "test0107";
+            string newRoomNumber = "10";
+            string newRoomType = "VIP";
+            string newPrice = "20000000"; 
+            string newStatus = "Trống";
+            int countBefore = room.CountRoomExact(newRoomNumber);
             string expectedError = "Phòng đã tồn tại";
 
             // Bước 1: Lưu lại thông tin gốc của phòng trước khi sửa
@@ -1005,7 +1052,7 @@ namespace DATN.Rooms
                 Assert.Fail($" Không tìm thấy phòng [{oldRoomNumber}] để sửa: {ex.Message}");
             }
             // Bước 2: Mở form sửa và nhập dữ liệu không hợp lệ
-            room.UpdateRoom(invalidRoomNumber, invalidRoomType, invalidPrice, invalidStatus);
+            room.UpdateRoom(newRoomNumber, newRoomType, newPrice, newStatus);
 
             // Bước 3: Kiểm tra thông báo lỗi
             bool errorDisplayed = false;
@@ -1043,11 +1090,11 @@ namespace DATN.Rooms
             Assert.IsTrue(stillExists, "Phòng gốc đã bị xóa hoặc đổi số sau khi nhập dữ liệu không hợp lệ.");
             Console.WriteLine("Phòng gốc vẫn giữ nguyên sau khi nhập dữ liệu không hợp lệ.");
 
-            // Bước 5: Kiểm tra phòng trùng không bị thêm/sửa (nếu có)
-            int roomCount = room.CountRoom(invalidRoomNumber);
-            Assert.AreEqual(1, roomCount,
-                $"Phòng [{invalidRoomNumber}] xuất hiện {roomCount} lần — hệ thống đã cập nhật/sửa sai.");
-            Console.WriteLine($"Phòng [{invalidRoomNumber}] chỉ xuất hiện {roomCount} lần trong danh sách phòng => PASSED.");
+            int countAfter = room.CountRoomExact(newRoomNumber);
+
+            // So sánh số lượng phòng để đảm bảo không có phòng mới được thêm
+            Assert.AreEqual(countBefore, countAfter, "Hệ thống vẫn thêm phòng mới dù dữ liệu không hợp lệ.");
+            Console.WriteLine("Không có phòng nào được thêm vào hệ thống -> Pass");
 
             // Bước 6: Kiểm tra dữ liệu phòng không thay đổi
             var roomInfo = room.FindRoomByNumber(oldRoomNumber);
@@ -1057,15 +1104,15 @@ namespace DATN.Rooms
             Assert.AreEqual(originalRoomInfo.RoomType, roomInfo.RoomType, "Loại phòng đã bị thay đổi.");
             Assert.AreEqual(originalRoomInfo.Price, roomInfo.Price, "Giá phòng đã bị thay đổi.");
             Assert.AreEqual(originalRoomInfo.Status, roomInfo.Status, "Tình trạng phòng đã bị thay đổi.");
-            Console.WriteLine("TestRoom15:Passed - Ưu tiên kiểm tra lỗi trùng phòng.-> phòng không được cập nhật  ");
+            Console.WriteLine("TestRoom:Passed - Ưu tiên kiểm tra lỗi trùng phòng.-> phòng không được cập nhật  ");
         }
         [TestMethod]
         /// Sửa phòng với thông tin hợn lệ cho Phòng bảo trì
-        public void TestRepairRoom16()
+        public void TestRepairRoom17()
         {
             // Thông tin ban đầu
-            String oldRoomNumber = "3";
-            string newRoomNumber = "32";
+            String oldRoomNumber = "test0107";
+            string newRoomNumber = "3test";
             string newRoomType = "VIP";
             string newPrice = "20000";
             string newStatus = "Trống";
@@ -1092,11 +1139,13 @@ namespace DATN.Rooms
             Console.WriteLine($"Phòng [{newRoomNumber}] đã xuất hiện trong danh sách phòng sau khi sửa.");
 
             // Bước 6: Kiểm tra lại toàn bộ thông tin phòng đã cập nhật
+            // Bước 6: Kiểm tra lại toàn bộ thông tin phòng đã cập nhật
             var updatedRoom = room.FindRoomByNumber(newRoomNumber);
             Assert.AreEqual(newRoomNumber, updatedRoom.RoomNumber, "Số phòng chưa đúng.");
             Assert.AreEqual(newRoomType, updatedRoom.RoomType, "Loại phòng chưa đúng.");
-            Assert.AreEqual(newPrice, updatedRoom.Price.Replace(".", ""), "Giá phòng chưa đúng.");
-            //Assert.AreEqual(newStatus, updatedRoom.Status, "Tình trạng phòng chưa đúng.");
+            Assert.AreEqual(newPrice, updatedRoom.Price.Replace(".", ""), "Giá phòng không đúng.");
+            Assert.AreEqual(newStatus, updatedRoom.Status, "Trạng thái phòng chưa đúng.");
+
             // Bước 7: Kiểm tra thông tin phòng mới trong combobox đặt phòng
             string priceFormatted = Convert.ToDecimal(newPrice).ToString("#,##0").Replace(",", ".");
             room.VerifyRoomInBookingDropdown(
@@ -1105,18 +1154,27 @@ namespace DATN.Rooms
                 priceFormatted: priceFormatted,
                 roomNumberOld: oldRoomNumber
             );
-            Console.WriteLine("TestRoomRepair16: Passed - Các thông tin phong bảo trì được cập nhật thành công");
+
+            Console.WriteLine("TestRoomRepair: Passed - Các thông tin phong bảo trì được cập nhật thành công");
         }
         [TestMethod]
 
-        public void TestRepairRoom17()
+        public void TestRepairRoom18()
         {
 
-            string oldRoomNumber = "1021";
+            string oldRoomNumber = "10";
 
-            room.CloseForm1(oldRoomNumber); // đã xử lý đầy đủ trong hàm
+            try
+            {
+                room.OpenEditRoomForm(oldRoomNumber);
+            }
+            catch (Exception ex)
+            {
+                Assert.Fail($" Không tìm thấy phòng [{oldRoomNumber}] để sửa: {ex.Message}");
+            }
+            room.CloseForm1(oldRoomNumber); 
             var wait = new WebDriverWait(driver, TimeSpan.FromSeconds(10));
-            // Kiểm tra form đã đóng chưa (giả định modal không còn hiển thị)
+           
             bool isModalClosed = wait.Until(driver =>
             {
                 try
@@ -1146,13 +1204,22 @@ namespace DATN.Rooms
         ///--> Khi chưa nhập text
         //        ///--> Khi nhập text nhưng chưa lưu
         [TestMethod]
-        public void TestRepairRoom18()
+        public void TestRepairRoom19()
         {
-            string oldRoomNumber = "1021";
+            string oldRoomNumber = "10";
             string newRoomNumber = "-5000";
             string newRoomType = "Deluxe";
             string newPrice = "2000000";
             string newStatus = "Trống";
+
+            try
+            {
+                room.OpenEditRoomForm(oldRoomNumber);
+            }
+            catch (Exception ex)
+            {
+                Assert.Fail($" Không tìm thấy phòng [{oldRoomNumber}] để sửa: {ex.Message}");
+            }
             // Gọi hàm đóng form sau khi điền dữ liệu
             room.CloseForm2(newRoomNumber, oldRoomNumber, newRoomType, newPrice, newStatus);
 
@@ -1173,13 +1240,13 @@ namespace DATN.Rooms
         }
         //-> Giá phòng = -0,01
         [TestMethod]
-        public void TestRepairRoom19()
+        public void TestRepairRoom20()
         {
-            string oldRoomNumber = "3";
-            string invalidRoomNumber = "test";
-            string invalidRoomType = "VIP";
-            string invalidPrice = "-0,01";
-            string invalidStatus = "Trống";
+            string oldRoomNumber = "10";
+            string newRoomNumber = "-5000";
+            string newRoomType = "Deluxe";
+            string newPrice = "-0,01";
+            string newStatus = "Trống";
 
             // Lưu lại thông tin phòng gốc
             var originalRoomInfo = room.FindRoomByNumber(oldRoomNumber);
@@ -1195,7 +1262,7 @@ namespace DATN.Rooms
             }
 
             // Gửi dữ liệu không hợp lệ
-            room.UpdateRoom(invalidRoomNumber, invalidRoomType, invalidPrice, invalidStatus);
+            room.UpdateRoom(newRoomNumber, newRoomType, newPrice, newStatus);
 
             // Kiểm tra thông báo lỗi từ trình duyệt (HTML5 validation message)
             var giaPhongInput = driver.FindElement(By.Id("edit_price"));
@@ -1226,16 +1293,16 @@ namespace DATN.Rooms
             Assert.AreEqual(originalRoomInfo.RoomType, roomInfo.RoomType, "Loại phòng bị thay đổi.");
             Assert.AreEqual(originalRoomInfo.Price, roomInfo.Price, "Giá phòng bị thay đổi.");
             Assert.AreEqual(originalRoomInfo.Status, roomInfo.Status, "Tình trạng phòng bị thay đổi.");
-            Console.WriteLine("TestRepairRoom19: Passed - Không thể sửa phòng nếu giá phòng cận biên < 0 = - 0,01");
+            Console.WriteLine("TestRepairRoom: Passed - Không thể sửa phòng nếu giá phòng cận biên < 0 = - 0,01");
         }
         [TestMethod]
-        public void TestRoom20()
+        public void TestRepairRoom21()
         {
-            string oldRoomNumber = "101test";
-            string invalidRoomNumber = "1023te";
-            string invalidRoomType = "VIP";
-            string invalidPrice = "100000000";
-            string invalidStatus = "Trống";
+            string oldRoomNumber = "10";
+            string newRoomNumber = "1023te";
+            string newRoomType = "VIP";
+            string newPrice = "100000000";
+            string newStatus = "Trống";
             // Lưu lại thông tin gốc trước khi sửa
             var originalRoomInfo = room.FindRoomByNumber(oldRoomNumber);
             Assert.IsNotNull(originalRoomInfo, "Không tìm thấy phòng gốc để lưu thông tin");
@@ -1250,7 +1317,7 @@ namespace DATN.Rooms
             }
 
             // Gửi dữ liệu không hợp lệ
-            room.UpdateRoom(invalidRoomNumber, invalidRoomType, invalidPrice, invalidStatus);
+            room.UpdateRoom(newRoomNumber, newRoomType, newPrice, newStatus);
 
             // Kiểm tra hiển thị lỗi
             try
@@ -1278,16 +1345,16 @@ namespace DATN.Rooms
             Assert.AreEqual(originalRoomInfo.Price, roomInfo.Price, "Giá phòng bị thay đổi.");
             Assert.AreEqual(originalRoomInfo.Status, roomInfo.Status, "Tình trạng phòng bị thay đổi.");
 
-            Console.WriteLine("TestRoom20: Passed - Không thể sửa phòng nếu giá phòng = 100000000");
+            Console.WriteLine("TestRepairRoom: Passed - Không thể sửa phòng nếu giá phòng = 100000000");
         }
         [TestMethod]
-        public void TestRoom21()
+        public void TestRepairRoom22()
         {
-            string oldRoomNumber = "101test";
-            string invalidRoomNumber = "1023te";
-            string invalidRoomType = "VIP";
-            string invalidPrice = "100000001";
-            string invalidStatus = "Trống";
+            string oldRoomNumber = "10";
+            string newRoomNumber = "1023te";
+            string newRoomType = "VIP";
+            string newPrice = "100000001";
+            string newStatus = "Trống";
             // Lưu lại thông tin gốc trước khi sửa
             var originalRoomInfo = room.FindRoomByNumber(oldRoomNumber);
             Assert.IsNotNull(originalRoomInfo, "Không tìm thấy phòng gốc để lưu thông tin");
@@ -1302,7 +1369,7 @@ namespace DATN.Rooms
             }
 
             // Gửi dữ liệu không hợp lệ
-            room.UpdateRoom(invalidRoomNumber, invalidRoomType, invalidPrice, invalidStatus);
+            room.UpdateRoom(newRoomNumber, newRoomType, newPrice, newStatus);
 
             // Kiểm tra hiển thị lỗi
             try
@@ -1330,19 +1397,19 @@ namespace DATN.Rooms
             Assert.AreEqual(originalRoomInfo.Price, roomInfo.Price, "Giá phòng bị thay đổi.");
             Assert.AreEqual(originalRoomInfo.Status, roomInfo.Status, "Tình trạng phòng bị thay đổi.");
 
-            Console.WriteLine("TestRoom20: Passed - Không thể sửa phòng nếu giá phòng = 100000001");
+            Console.WriteLine("TestRepairRoom: Passed - Không thể sửa phòng nếu giá phòng = 100000001");
         }
         [TestMethod]
         //-> Giá phòng = -0,01 và phòng trùng
-        public void TestRoom22()
+        public void TestRepairRoom23()
         {
-            string oldRoomNumber = "3";
-            string invalidRoomNumber = "121";
-            string invalidRoomType = "VIP";
-            string invalidPrice = "-0,01";
-            string invalidStatus = "Trống";
+            string oldRoomNumber = "10";
+            string newRoomNumber = "3test";
+            string newRoomType = "VIP";
+            string newPrice = "-0,01";
+            string newStatus = "Trống";
 
-            string expectedMessage = "Phòng đã tồn tại";
+            string Message = "Phòng đã tồn tại";
 
             // Lưu lại thông tin gốc trước khi sửa
             var originalRoomInfo = room.FindRoomByNumber(oldRoomNumber);
@@ -1355,7 +1422,7 @@ namespace DATN.Rooms
             {
                 Assert.Fail($" Không tìm thấy phòng [{oldRoomNumber}] để sửa: {ex.Message}");
             }
-            room.UpdateRoom(invalidRoomNumber, invalidRoomType, invalidPrice, invalidStatus);
+            room.UpdateRoom(newRoomNumber, newRoomType, newPrice, newStatus);
             var wait = new WebDriverWait(driver, TimeSpan.FromSeconds(10));
 
             // Tìm lại input và lấy thông báo lỗi
@@ -1372,6 +1439,7 @@ namespace DATN.Rooms
             Console.WriteLine("Form vẫn hiển thị sau khi nhập dữ liệu không hợp lệ.");
 
             // Đóng form
+       
             driver.FindElement(By.CssSelector("#editRoomModal .btn.btn-secondary")).Click();
             Console.WriteLine("Đã nhấn nút Đóng form thêm phòng.");
 
@@ -1384,10 +1452,10 @@ namespace DATN.Rooms
                     return (elem.Displayed && !string.IsNullOrWhiteSpace(elem.Text)) ? elem : null;
                 });
 
-                if (errorElement.Text.Contains(expectedMessage))
+                if (errorElement.Text.Contains(Message))
                 {
                     ErrorDisplayed = true;
-                    Console.WriteLine("Tìm thấy lỗi phòng trùng: " + expectedMessage);
+                    Console.WriteLine("Tìm thấy lỗi phòng trùng: " + Message);
                 }
                 else
                 {
@@ -1406,9 +1474,9 @@ namespace DATN.Rooms
             Assert.IsTrue(stillExists, "Phòng gốc đã bị xóa hoặc đổi số sau khi nhập dữ liệu không hợp lệ!");
             Console.WriteLine("Phòng gốc vẫn giữ nguyên sau khi nhập dữ liệu không hợp lệ.");
 
-            int roomCount = room.CountRoom(invalidRoomNumber);
-            Assert.AreEqual(1, roomCount, $"Phòng [{invalidRoomNumber}] xuất hiện {roomCount} lần — hệ thống đã cho cập nhật trùng phòng");
-            Console.WriteLine($"Phòng [{invalidRoomNumber}] chỉ xuất hiện {roomCount} lần trong danh sách phòng -> Pass");
+            int newRoomAppearCount = room.CountRoomExact(newRoomNumber);
+            Assert.AreEqual(1, newRoomAppearCount, $"Phòng [{newRoomNumber}] xuất hiện {newRoomAppearCount} lần dù không nên được tạo.");
+            Console.WriteLine($"Phòng [{newRoomNumber}] không xuất hiện hơn 1 lần trong danh sách phòng → Pass");
 
             var roomInfo = room.FindRoomByNumber(oldRoomNumber);
             Assert.IsNotNull(roomInfo, "Không tìm thấy phòng cần kiểm tra sau khi sửa");
@@ -1417,17 +1485,17 @@ namespace DATN.Rooms
             Assert.AreEqual(originalRoomInfo.RoomType, roomInfo.RoomType, "Loại phòng bị thay đổi.");
             Assert.AreEqual(originalRoomInfo.Price, roomInfo.Price, "Giá phòng bị thay đổi.");
             Assert.AreEqual(originalRoomInfo.Status, roomInfo.Status, "Tình trạng phòng bị thay đổi.");
-            Console.WriteLine("TestRoom22: Passed - Ưu tiên kiểm tra lỗi giá phòng = -0,01, không xét đến lỗi trùng phòng.-> phòng kh được sửa  ");
+            Console.WriteLine("TestRepairRoom: Passed - Ưu tiên kiểm tra lỗi giá phòng = -0,01, không xét đến lỗi trùng phòng.-> phòng kh được sửa  ");
         }
         [TestMethod]
         //-> Giá phòng = 100.000.0000
-        public void TestRoom23()
+        public void TestRepairRoom24()
         {
-            string oldRoomNumber = "3";
-            string invalidRoomNumber = "121"; // Trùng cũng không xét, ưu tiên lỗi giá
-            string invalidRoomType = "VIP";
-            string invalidPrice = "100000000"; // Giá quá lớn, không hợp lệ
-            string invalidStatus = "Trống";
+            string oldRoomNumber = "10";
+            string newRoomNumber = "121"; // Trùng cũng không xét, ưu tiên lỗi giá
+            string newRoomType = "VIP";
+            string newPrice = "100000000"; // Giá quá lớn, không hợp lệ
+            string newStatus = "Trống";
 
             string expectedError = "Giá trị nhập không hợp lệ";
 
@@ -1443,7 +1511,7 @@ namespace DATN.Rooms
                 Assert.Fail($" Không tìm thấy phòng [{oldRoomNumber}] để sửa: {ex.Message}");
             }
             // Bước 2: Mở form sửa và nhập dữ liệu không hợp lệ
-            room.UpdateRoom(invalidRoomNumber, invalidRoomType, invalidPrice, invalidStatus);
+            room.UpdateRoom(newRoomNumber, newRoomType, newPrice, newStatus);
 
             // Bước 3: Kiểm tra thông báo lỗi
             // Chờ nếu cần
@@ -1475,10 +1543,9 @@ namespace DATN.Rooms
             Console.WriteLine("Phòng gốc vẫn giữ nguyên sau khi nhập dữ liệu không hợp lệ.");
 
             // Bước 5: Kiểm tra phòng trùng không bị thêm/sửa (nếu có)
-            int roomCount = room.CountRoom(invalidRoomNumber);
-            Assert.AreEqual(1, roomCount,
-                $"Phòng [{invalidRoomNumber}] xuất hiện {roomCount} lần — hệ thống đã cập nhật/sửa sai.");
-            Console.WriteLine($"Phòng [{invalidRoomNumber}] chỉ xuất hiện {roomCount} lần trong danh sách phòng => PASSED.");
+            int newRoomAppearCount = room.CountRoomExact(newRoomNumber);
+            Assert.AreEqual(1, newRoomAppearCount, $"Phòng [{newRoomNumber}] xuất hiện {newRoomAppearCount} lần dù không nên được tạo.");
+            Console.WriteLine($"Phòng [{newRoomNumber}] không xuất hiện nhiều hơn 1 lần trong danh sách phòng → Pass");
 
             // Bước 6: Kiểm tra dữ liệu phòng không thay đổi
             var roomInfo = room.FindRoomByNumber(oldRoomNumber);
@@ -1488,17 +1555,17 @@ namespace DATN.Rooms
             Assert.AreEqual(originalRoomInfo.RoomType, roomInfo.RoomType, "Loại phòng đã bị thay đổi.");
             Assert.AreEqual(originalRoomInfo.Price, roomInfo.Price, "Giá phòng đã bị thay đổi.");
             Assert.AreEqual(originalRoomInfo.Status, roomInfo.Status, "Tình trạng phòng đã bị thay đổi.");
-            Console.WriteLine("TestRoom23: Passed - Ưu tiên kiểm tra lỗi giá phòng = 100000000, không xét đến lỗi trùng phòng -> phòng không được sửa  ");
+            Console.WriteLine("TestRepairRoom24: Passed - Ưu tiên kiểm tra lỗi giá phòng = 100000000, không xét đến lỗi trùng phòng -> phòng không được sửa  ");
         }
         [TestMethod]
         //-> Giá phòng = 100.000.001
-        public void TestRoom24()
+        public void TestRepairRoom25()
         {
-            string oldRoomNumber = "3";
-            string invalidRoomNumber = "121"; // Trùng cũng không xét, ưu tiên lỗi giá
-            string invalidRoomType = "VIP";
-            string invalidPrice = "100000001"; // Giá quá lớn, không hợp lệ
-            string invalidStatus = "Trống";
+            string oldRoomNumber = "10";
+            string newRoomNumber = "test0107"; // Trùng cũng không xét, ưu tiên lỗi giá
+            string newRoomType = "VIP";
+            string newPrice = "100000001"; // Giá quá lớn, không hợp lệ
+            string newStatus = "Trống";
 
             string expectedError = "Giá trị nhập không hợp lệ";
 
@@ -1514,7 +1581,7 @@ namespace DATN.Rooms
                 Assert.Fail($" Không tìm thấy phòng [{oldRoomNumber}] để sửa: {ex.Message}");
             }
             // Bước 2: Mở form sửa và nhập dữ liệu không hợp lệ
-            room.UpdateRoom(invalidRoomNumber, invalidRoomType, invalidPrice, invalidStatus);
+            room.UpdateRoom(newRoomNumber, newRoomType, newPrice, newStatus);
 
             // Bước 3: Kiểm tra thông báo lỗi
             // Chờ nếu cần
@@ -1546,10 +1613,9 @@ namespace DATN.Rooms
             Console.WriteLine("Phòng gốc vẫn giữ nguyên sau khi nhập dữ liệu không hợp lệ.");
 
             // Bước 5: Kiểm tra phòng trùng không bị thêm/sửa (nếu có)
-            int roomCount = room.CountRoom(invalidRoomNumber);
-            Assert.AreEqual(1, roomCount,
-                $"Phòng [{invalidRoomNumber}] xuất hiện {roomCount} lần — hệ thống đã cập nhật/sửa sai.");
-            Console.WriteLine($"Phòng [{invalidRoomNumber}] chỉ xuất hiện {roomCount} lần trong danh sách phòng => PASSED.");
+            int newRoomAppearCount = room.CountRoomExact(newRoomNumber);
+            Assert.AreEqual(0, newRoomAppearCount, $"Phòng [{newRoomNumber}] xuất hiện {newRoomAppearCount} lần dù không nên được tạo.");
+            Console.WriteLine($"Phòng [{newRoomNumber}] không xuất hiện trong danh sách phòng → Pass");
 
             // Bước 6: Kiểm tra dữ liệu phòng không thay đổi
             var roomInfo = room.FindRoomByNumber(oldRoomNumber);
@@ -1559,17 +1625,17 @@ namespace DATN.Rooms
             Assert.AreEqual(originalRoomInfo.RoomType, roomInfo.RoomType, "Loại phòng đã bị thay đổi.");
             Assert.AreEqual(originalRoomInfo.Price, roomInfo.Price, "Giá phòng đã bị thay đổi.");
             Assert.AreEqual(originalRoomInfo.Status, roomInfo.Status, "Tình trạng phòng đã bị thay đổi.");
-            Console.WriteLine("TestRoom24: Passed - Ưu tiên kiểm tra lỗi giá phòng = 100000001, không xét đến lỗi trùng phòng -> phòng không được sửa ");
+            Console.WriteLine("TestRepairRoom: Passed - Ưu tiên kiểm tra lỗi giá phòng = 100000001, không xét đến lỗi trùng phòng -> phòng không được sửa ");
         }
         [TestMethod]
         //-> Nút Sửa khi phòng có dữ liệu
-        public void TestRoom25()
+        public void TestRepairRoom26()
         {
             room.OpenSidebarIfNeeded();
             var BtnRoom = driver.FindElement(By.CssSelector("#sidebarMenu .nav-link[href='rooms.php']"));
             BtnRoom.Click();
             // Tìm phòng cần kiểm tra (giả sử là phòng số 101)
-            string roomNumber = "107";
+            string roomNumber = "6666";
 
             // Tìm dòng chứa số phòng đó
             var row = driver.FindElements(By.CssSelector("table tbody tr"))
@@ -1589,11 +1655,6 @@ namespace DATN.Rooms
             Console.WriteLine($"Nút sửa phòng [{roomNumber}] đã bị vô hiệu hóa đúng như mong đợi.");
 
         }
-        //[TestCleanup]
-        //public void TearDown()
-        //{
-        //    driver.Quit(); // Luôn chạy sau mỗi test
-        //}
     }
 }
 
