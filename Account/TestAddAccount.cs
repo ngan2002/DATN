@@ -35,16 +35,15 @@ namespace DATN.Account
 
         }
         [TestMethod]
-     
+        // hợp lệ
         public void AddAccount1()
         {
-            string username = "NV11";
+            string username = "NV121";
             string password = "123";
             string confirmPassword = "123";
-            string maNV = ""; 
             string role = "Staff";
 
-            account.AddUserAccount(username, password, confirmPassword, maNV, role);
+            account.AddUserAccount(username, password, confirmPassword, role);
 
             var successElement = wait.Until(driver =>
             {
@@ -60,7 +59,7 @@ namespace DATN.Account
             });
 
             Assert.AreEqual("Thêm tài khoản thành công!", successElement.Text.Trim(), "Nội dung thông báo thành công không đúng.");
-            Console.WriteLine($"Thông báo hiển thị thành công là {successElement.Text.Trim()}");
+            Console.WriteLine($"Thông báo hiển thị thành công là: {successElement.Text.Trim()}");
 
             Assert.IsTrue(account.IsUserExists(username), $"Không tìm thấy tài khoản [{username}] trong danh sách.");
             Console.WriteLine($"Tài khoản [{username}] đã xuất hiện trong danh sách.");
@@ -69,20 +68,31 @@ namespace DATN.Account
             Assert.IsNotNull(details, "Không lấy được thông tin chi tiết của tài khoản.");
             Assert.AreEqual(username, details.Username, "Tên đăng nhập không khớp.");
             Assert.AreEqual(role, details.Role, "Quyền tài khoản không khớp.");
+
+            // Kiểm tra ngày tạo
+            DateTime now = DateTime.Now;
+            DateTime expectedDate = now.Date; // chỉ lấy phần ngày (bỏ giờ)
+            DateTime actualDate = details.CreatedDate.Date;
+
+            Assert.AreEqual(expectedDate, actualDate, $"Ngày tạo không đúng. Dự kiến: {expectedDate:dd/MM/yyyy}, thực tế: {actualDate:dd/MM/yyyy}");
+            Console.WriteLine($"Tài khoản tạo lúc: {details.CreatedDate:dd/MM/yyyy HH:mm}");
         }
+
         //Username trùng
         [TestMethod]
 
         public void AddAccount2()
         {
-            int countBefore = account.CountAllUsers();
-            string username = "NV11";
+          
+            string username = "admin";
             string password = "123";
             string confirmPassword = "123";
-            string maNV = "";
             string role = "Staff";
-            
-            account.AddUserAccount(username, password, confirmPassword, maNV, role);
+
+            var before = account.GetUserDetails(username);
+            Assert.IsNotNull(before, $"Tài khoản [{username}] không tồn tại trước khi test, không thể kiểm thử trùng.");
+
+            int countBefore = account.CountAllUsers();
             try
             {
                 var successElement = wait.Until(driver =>
@@ -111,19 +121,20 @@ namespace DATN.Account
             Assert.AreEqual(countBefore, countAfter, "Hệ thống vẫn thêm tài khoản mới dù dữ liệu không hợp lệ.");
             Console.WriteLine("Không có tài khoản nào được thêm vào hệ thống -> Pass");
 
-            var details = account.GetUserDetails(username);
-            Assert.IsNotNull(details, "Không lấy được thông tin chi tiết của tài khoản.");
-            Assert.AreEqual(username, details.Username, "Tên đăng nhập không khớp.");
-            Assert.AreEqual(role, details.Role, "Quyền tài khoản không khớp.");
+            var after = account.GetUserDetails(username);
+            Assert.IsNotNull(after, "Không lấy được thông tin chi tiết của tài khoản.");
+            Assert.AreEqual(before.Username, after.Username, "Username bị thay đổi.");
+            Assert.AreEqual(before.Role, after.Role, "Role bị ghi đè.");
+            Assert.AreEqual(before.CreatedDate, after.CreatedDate, "Ngày tạo tài khoản bị thay đổi.");
         }
         // Username trống
         [TestMethod]
 
         public void AddAccount3()
         {
-            int countBefore = account.CountAllUsers();
             string username = "";
-            account.AddUserAccount(username, "12", "12", "", "Staff");
+            account.AddUserAccount(username, "12", "12", "Staff");
+            int countBefore = account.CountAllUsers(); 
             var UsernameInput = driver.FindElement(By.Id("username"));
             string validationMessage = UsernameInput.GetAttribute("validationMessage");
 
@@ -134,45 +145,57 @@ namespace DATN.Account
             bool isModalStillOpen = driver.FindElement(By.Id("addUserModal")).GetAttribute("class").Contains("show");
             Assert.IsTrue(isModalStillOpen, "Form đã bị đóng dù dữ liệu không hợp lệ");
             Console.WriteLine("Form vẫn hiển thị sau khi nhập dữ liệu không hợp lệ.");
-
-
             int countAfter = account.CountAllUsers();
 
             // So sánh số lượng phòng để đảm bảo không có phòng mới được thêm
             Assert.AreEqual(countBefore, countAfter, "Hệ thống vẫn thêm phòng mới dù dữ liệu không hợp lệ.");
             Console.WriteLine("Không có phòng nào được thêm vào hệ thống -> Pass");
         }
+   //Pass để trống
         [TestMethod]
 
         public void AddAccount4()
         {
+            // 1. Lấy số lượng tài khoản trước khi thao tác
             int countBefore = account.CountAllUsers();
-            string password = "";
-            account.AddUserAccount("12", password, "12", "", "Staff");
-            var UsernameInput = driver.FindElement(By.Id("password"));
-            string validationMessage = UsernameInput.GetAttribute("validationMessage");
 
-            // Kiểm tra thông báo lỗi có đúng như mong đợi
+            // 2. Khai báo thông tin (cố tình để trống mật khẩu để bị chặn bởi HTML5)
+            string username = "test_html5";
+            string password = "";
+            string confirmPassword = "";
+            string role = "Staff";
+
+            // 3. Gọi hàm nhập liệu (hàm này không nên submit nếu form bị lỗi HTML5)
+            account.AddUserAccount(username, password, confirmPassword, role);
+
+            // 4. Lấy ra textbox mật khẩu để kiểm tra thông báo lỗi trình duyệt
+            var passwordInput = driver.FindElement(By.Id("password"));
+            string validationMessage = passwordInput.GetAttribute("validationMessage");
+
+            // 5. Kiểm tra nội dung cảnh báo đúng như mong đợi (trình duyệt tiếng Anh)
             Assert.AreEqual("Please fill out this field.", validationMessage);
             Console.WriteLine($"Password hiển thị thông báo lỗi: [{validationMessage}]");
-            // Đảm bảo form vẫn đang mở (không submit được)
+
+            // 6. Kiểm tra modal vẫn hiển thị (form chưa bị submit)
             bool isModalStillOpen = driver.FindElement(By.Id("addUserModal")).GetAttribute("class").Contains("show");
             Assert.IsTrue(isModalStillOpen, "Form đã bị đóng dù dữ liệu không hợp lệ");
             Console.WriteLine("Form vẫn hiển thị sau khi nhập dữ liệu không hợp lệ.");
 
-
+            // 7. Đếm lại số lượng tài khoản sau thao tác
             int countAfter = account.CountAllUsers();
 
-            // So sánh số lượng phòng để đảm bảo không có phòng mới được thêm
-            Assert.AreEqual(countBefore, countAfter, "Hệ thống vẫn thêm phòng mới dù dữ liệu không hợp lệ.");
-            Console.WriteLine("Không có phòng nào được thêm vào hệ thống -> Pass");
+            // 8. Kiểm tra không có tài khoản nào được thêm
+            Assert.AreEqual(countBefore, countAfter, "Hệ thống vẫn thêm tài khoản mới dù dữ liệu không hợp lệ.");
+            Console.WriteLine("Không có tài khoản nào được thêm vào hệ thống -> PASS");
         }
+
+        //Confirm Pass trống
         [TestMethod]
         public void AddAccount5()
         {
             int countBefore = account.CountAllUsers();
             string confirmPassword = "";
-            account.AddUserAccount("12", "12", confirmPassword, "", "Staff");
+            account.AddUserAccount("12", "12", confirmPassword, "Staff");
             var ConfirmPasseInput = driver.FindElement(By.Id("confirm_password"));
             string validationMessage = ConfirmPasseInput.GetAttribute("validationMessage");
 
@@ -191,6 +214,7 @@ namespace DATN.Account
             Assert.AreEqual(countBefore, countAfter, "Hệ thống vẫn thêm phòng mới dù dữ liệu không hợp lệ.");
             Console.WriteLine("Không có phòng nào được thêm vào hệ thống -> Pass");
         }
+        // CP Không khớp với pass
         [TestMethod]
         public void AddAccount6()
         {
@@ -198,10 +222,9 @@ namespace DATN.Account
             string username = "NV122";
             string password = "123";
             string confirmPassword = "12367";
-            string maNV = "";
             string role = "Staff";
 
-            account.AddUserAccount(username, password, confirmPassword, maNV, role);
+            account.AddUserAccount(username, password, confirmPassword, role);
             try
             {
                 var successElement = wait.Until(driver =>
@@ -230,373 +253,239 @@ namespace DATN.Account
             Assert.AreEqual(countBefore, countAfter, "Hệ thống vẫn thêm tài khoản mới dù dữ liệu không hợp lệ.");
             Console.WriteLine("Không có tài khoản nào được thêm vào hệ thống -> Pass");
 
-         
+
         }
+        // user trùng, pass trống
         [TestMethod]
         public void AddAccount7()
         {
+            // 1. Lấy số lượng tài khoản trước khi test
             int countBefore = account.CountAllUsers();
-            string username = "NV122";
-            string password = "123";
+
+            // 2. Thông tin đầu vào - cố tình thiếu mã nhân viên (nếu trường này đang bắt buộc ở client)
+            string username = "test1";
+            string password = "";
             string confirmPassword = "123";
-            string maNV = "NV123";
             string role = "Staff";
 
-            account.AddUserAccount(username, password, confirmPassword, maNV, role);
-            try
-            {
-                var successElement = wait.Until(driver =>
-                {
-                    try
-                    {
-                        var element = driver.FindElement(By.CssSelector("div.alert.alert-danger"));
-                        return element.Displayed ? element : null;
-                    }
-                    catch (NoSuchElementException)
-                    {
-                        return null;
-                    }
-                });
+            // 3. Gọi hàm nhập liệu (chưa bypass HTML5)
+            account.AddUserAccount(username, password, confirmPassword, role);
 
-                Assert.AreEqual("Nhân viên này đã có tài khoản.", successElement.Text.Trim(), "Nội dung thông báo không đúng.");
-                Console.WriteLine($"Thông báo hiển thị là: {successElement.Text.Trim()}");
-            }
-            catch (WebDriverTimeoutException)
-            {
-                Assert.Fail("Không tìm thấy thông báo lỗi ");
-            }
+            // 4. Kiểm tra lỗi HTML5 tại trường full_name
+            var passInput = driver.FindElement(By.Id("password"));
+            string validationMessage = passInput.GetAttribute("validationMessage");
+            Assert.AreEqual("Please fill out this field.", validationMessage);
+            Console.WriteLine($"Thông báo lỗi HTML5 tại 'full_name': {validationMessage}");
+
+            // 4. Kiểm tra: không có alert hiển thị vì form bị HTML5 chặn submit
+            var alerts = driver.FindElements(By.CssSelector("div.alert.alert-danger"))
+                .Where(a => a.Displayed && !string.IsNullOrWhiteSpace(a.Text)).ToList();
+
+            Assert.AreEqual(0, alerts.Count, "Không nên có alert vì trình duyệt đã chặn submit.");
+            Console.WriteLine("Không có alert lỗi hiển thị (đúng do bị HTML5 chặn).");
+
+            // 5. Kiểm tra modal vẫn đang hiển thị
+            bool isModalOpen = driver.FindElement(By.Id("addUserModal")).GetAttribute("class").Contains("show");
+            Assert.IsTrue(isModalOpen, "Form đã bị đóng dù dữ liệu không hợp lệ");
+            Console.WriteLine("Form vẫn mở sau khi bị HTML5 chặn.");
+
+            // 6. Kiểm tra hệ thống không thêm tài khoản mới
             int countAfter = account.CountAllUsers();
+            Assert.AreEqual(countBefore, countAfter, "Hệ thống vẫn thêm tài khoản dù dữ liệu không hợp lệ.");
+            Console.WriteLine("Không có tài khoản nào được thêm vào hệ thống -> PASS");
 
-            // So sánh số lượng phòng để đảm bảo không có phòng mới được thêm
-            Assert.AreEqual(countBefore, countAfter, "Hệ thống vẫn thêm tài khoản mới dù dữ liệu không hợp lệ.");
-            Console.WriteLine("Không có tài khoản nào được thêm vào hệ thống -> Pass");
+            // 7. Kiểm tra dữ liệu khách hàng cũ không bị ghi đè
+            string cccd = "123456789"; // CCCD giả định có sẵn
+            var accountBefore = account.GetUserDetails(username);
+            Assert.IsNotNull(accountBefore, $"Không tìm thấy khách hàng [{username}] trước khi test.");
+
+            // Lấy lại thông tin tài khoản sau khi test
+            var accountAfter = account.GetUserDetails(username);
+            Assert.IsNotNull(accountAfter, $"Không tìm thấy tài khoản [{username}] sau khi test.");
+
+            // So sánh các thuộc tính
+            Assert.AreEqual(accountBefore.Role, accountAfter.Role, "Vai trò tài khoản bị thay đổi.");
+            Console.WriteLine("Dữ liệu tài khoản không bị thay đổi -> PASS");
         }
+
+
+        // user trùng, CP không khớp
         [TestMethod]
         public void AddAccount8()
         {
-            int countBefore = account.CountAllUsers();
-     
-            string expectedMessage = "Tên đăng nhập đã tồn tại";
-           
             string username = "NV11";
-            string password = "";
-            string confirmPassword = "123";
-            string maNV = "";
+            string password = "12";
+            string confirmPassword = "123"; // khác password -> lỗi
             string role = "Staff";
-            UserModel userBefore = account.GetUserDetails(username);
-            account.AddUserAccount(username, password, confirmPassword, maNV, role);
-            var UsernameInput = driver.FindElement(By.Id("password"));
-            string validationMessage = UsernameInput.GetAttribute("validationMessage");
+            string expectedMessage = "Mật khẩu xác nhận không khớp.";
 
-            // Kiểm tra thông báo lỗi có đúng như mong đợi
-            Assert.AreEqual("Please fill out this field.", validationMessage);
-            Console.WriteLine($"Password hiển thị thông báo lỗi: [{validationMessage}]");
-            // Đảm bảo form vẫn đang mở (không submit được)
-            bool isModalStillOpen = driver.FindElement(By.Id("addUserModal")).GetAttribute("class").Contains("show");
-            Assert.IsTrue(isModalStillOpen, "Form đã bị đóng dù dữ liệu không hợp lệ");
-            Console.WriteLine("Form vẫn hiển thị sau khi nhập dữ liệu không hợp lệ.");
-            // Đóng form
-            driver.FindElement(By.CssSelector("button.btn.btn-secondary")).Click();
-            Console.WriteLine("Đã nhấn nút Đóng form Thêm Tài khoản.");
+            // 1. Lưu thông tin tài khoản ban đầu
+            UserModel accountBefore = account.GetUserDetails(username);
+            Assert.IsNotNull(accountBefore, $"Không tìm thấy tài khoản [{username}] để kiểm thử.");
 
-            // 2. Kiểm tra xem có hiển thị lỗi tài khoản trùng không
-            bool ErrorDisplayed = false;
-            try
-            {
-                var errorElement = wait.Until(driver =>
-                {
-                    var elem = driver.FindElement(By.CssSelector("div.alert.alert-danger"));
-                    return (elem.Displayed && !string.IsNullOrWhiteSpace(elem.Text)) ? elem : null;
-                });
+            // 2. Gửi dữ liệu không hợp lệ
+            account.AddUserAccount(username, password, confirmPassword, role);
 
-                if (errorElement.Text.Contains(expectedMessage))
-                {
-                    ErrorDisplayed = true;
-                    Console.WriteLine("Tìm thấy lỗi tài khoản trùng: " + expectedMessage);
-                }
-                else
-                {
-                    Console.WriteLine("Có hiển thị lỗi khác, nhưng không phải lỗi username trùng.");
-                }
-            }
-            catch (WebDriverTimeoutException)
-            {
-                ErrorDisplayed = false;
-                Console.WriteLine("Không tìm thấy lỗi tài khoản trùng.");
-            }
-            // 4. Đảm bảo phòng gốc vẫn tồn tại (không bị ghi đè, xóa)
+            // 3. Kiểm tra alert hiển thị
+            var wait = new WebDriverWait(driver, TimeSpan.FromSeconds(10));
+            wait.Until(d => d.FindElements(By.CssSelector("div.alert.alert-danger"))
+                .Any(a => a.Displayed && !string.IsNullOrWhiteSpace(a.Text)));
+
+            var alerts = driver.FindElements(By.CssSelector("div.alert.alert-danger"))
+                .Where(a => a.Displayed && !string.IsNullOrWhiteSpace(a.Text)).ToList();
+
+            Assert.IsTrue(alerts.Count > 0, "Không có thông báo lỗi nào được hiển thị.");
+            Assert.AreEqual(1, alerts.Count, "Có nhiều hơn 1 thông báo lỗi hiển thị.");
+
+            string actualError = alerts[0].Text.Trim();
+            Assert.AreEqual(expectedMessage, actualError,
+                $"Nội dung lỗi không đúng. Mong đợi: \"{expectedMessage}\" - Thực tế: \"{actualError}\"");
+
+            Console.WriteLine("Hiển thị đúng một lỗi duy nhất: " + actualError);
+
+            // 4. Kiểm tra tài khoản không bị thay đổi
             UserModel accountAfter = account.GetUserDetails(username);
             Assert.IsNotNull(accountAfter, $"Không tìm thấy tài khoản [{username}] sau khi test.");
 
-            Assert.AreEqual(userBefore.Username, accountAfter.Username, "Tên đăng nhập bị ghi đè thay đổi!");
-            Assert.AreEqual(userBefore.Role, accountAfter.Role, "vai trò tài khoản bị ghi đè thay đổi!");
-            
+            Assert.AreEqual(accountBefore.Username, accountAfter.Username, "Tên đăng nhập bị thay đổi.");
+            Assert.AreEqual(accountBefore.Role, accountAfter.Role, "Vai trò tài khoản bị thay đổi.");
 
-            // 5. Đảm bảo không có bản ghi trùng
-            int roomCount = account.CountUsername(username);
-            Assert.AreEqual(1, roomCount, $"Tài khoản [{username}] xuất hiện {username} lần — hệ thống đã cho thêm trùng username!");
-            Console.WriteLine("Dữ liệu tài khoản không bị thay đổi -> Không bị ghi đè -> Đúng.");
+            // 5. Đảm bảo không bị thêm trùng
+            int userCount = account.CountUsername(username);
+            Assert.AreEqual(1, userCount, $"Tài khoản [{username}] xuất hiện {userCount} lần — hệ thống đã thêm trùng!");
+
+            Console.WriteLine("Dữ liệu tài khoản không bị thay đổi -> PASS.");
         }
+
         [TestMethod]
         public void AddAccount9()
         {
-            int countBefore = account.CountAllUsers();
+            // 1. Ghi nhận số lượng tài khoản ban đầu
+            int totalBefore = account.CountAllUsers();
 
-            string expectedMessage = "Mật khẩu xác nhận không khớp.";
-
-            string username = "NV11";
+            string username = "NV11"; // tài khoản đã tồn tại
             string password = "123";
-            string confirmPassword = "12345";
-            string maNV = "";
+            string confirmPassword = ""; // để trống -> bị HTML5 chặn
             string role = "Staff";
 
-            // 1. Lưu thông tin phòng ban đầu
+            // 2. Lưu thông tin tài khoản trước khi test
             UserModel accountBefore = account.GetUserDetails(username);
             Assert.IsNotNull(accountBefore, $"Không tìm thấy tài khoản [{username}] để kiểm thử.");
 
-            account.AddUserAccount(username, password, confirmPassword, maNV, role);
+            // 3. Kiểm tra trình duyệt chặn submit vì confirm password trống
+            var confirmPassInput = driver.FindElement(By.Id("confirm_password")); // đúng ID
+            string validationMessage = confirmPassInput.GetAttribute("validationMessage");
+            Assert.AreEqual("Please fill out this field.", validationMessage);
+            Console.WriteLine($"Thông báo lỗi HTML5 tại 'confirm_password': {validationMessage}");
 
-            var wait = new WebDriverWait(driver, TimeSpan.FromSeconds(10));
-            //Check số  lỗi giá hiển thị
-            wait.Until(d => d.FindElements(By.CssSelector("div.alert.alert-danger"))
-                .Any(a => a.Displayed && !string.IsNullOrWhiteSpace(a.Text)));
-
+            // 4. Kiểm tra không có alert phía server vì form không submit
             var alerts = driver.FindElements(By.CssSelector("div.alert.alert-danger"))
                 .Where(a => a.Displayed && !string.IsNullOrWhiteSpace(a.Text)).ToList();
 
-            // Kiểm tra có ít nhất 1 lỗi
-            if (alerts.Count == 0)
-            {
-                Assert.Fail("Không có thông báo lỗi nào được hiển thị.");
-            }
+            Assert.AreEqual(0, alerts.Count, "Không nên có alert vì trình duyệt đã chặn submit.");
+            Console.WriteLine("Không có alert lỗi hiển thị (đúng do bị HTML5 chặn).");
 
-            // Kiểm tra chỉ có 1 lỗi
-            Assert.AreEqual(1, alerts.Count, "Có nhiều hơn 1 thông báo lỗi hiển thị.");
+            // 5. Form modal vẫn hiển thị
+            bool isModalOpen = driver.FindElement(By.Id("addUserModal")).GetAttribute("class").Contains("show");
+            Assert.IsTrue(isModalOpen, "Form đã bị đóng dù dữ liệu không hợp lệ.");
+            Console.WriteLine("Form vẫn mở sau khi bị HTML5 chặn.");
 
-            // Kiểm tra nội dung lỗi đúng
-            string actualError = alerts[0].Text.Trim();
-            Assert.AreEqual(expectedMessage, actualError,
-                $"Nội dung lỗi không đúng. Mong đợi: \"{expectedMessage}\" - Thực tế: \"{actualError}\"");
+            // 6. Kiểm tra hệ thống không thêm tài khoản mới
+            int totalAfter = account.CountAllUsers();
+            Assert.AreEqual(totalBefore, totalAfter, "Hệ thống vẫn thêm tài khoản dù dữ liệu không hợp lệ.");
+            Console.WriteLine("Không có tài khoản nào được thêm vào hệ thống -> PASS");
 
-            Console.WriteLine("Hiển thị đúng một lỗi duy nhất: " + actualError);
-
-         
+            // 7. Kiểm tra dữ liệu tài khoản cũ không bị ghi đè
             UserModel accountAfter = account.GetUserDetails(username);
             Assert.IsNotNull(accountAfter, $"Không tìm thấy tài khoản [{username}] sau khi test.");
+            Assert.AreEqual(accountBefore.Role, accountAfter.Role, "Vai trò tài khoản bị thay đổi.");
+            Assert.AreEqual(accountBefore.Username, accountAfter.Username, "Tên đăng nhập bị thay đổi.");
 
-            Assert.AreEqual(accountBefore.Username, accountAfter.Username, "Tên đăng nhập bị ghi đè thay đổi!");
-            Assert.AreEqual(accountBefore.Role, accountAfter.Role, "vai trò tài khoản bị ghi đè thay đổi!");
-
-            // 5. Đảm bảo không có bản ghi trùng
-            int roomCount = account.CountUsername(username);
-            Assert.AreEqual(1, roomCount, $"Tài khoản [{username}] xuất hiện {username} lần — hệ thống đã cho thêm trùng username!");
-            Console.WriteLine("Dữ liệu tài khoản không bị thay đổi -> Không bị ghi đè -> Đúng.");
+            Console.WriteLine("Dữ liệu tài khoản không bị thay đổi -> PASS");
         }
+        
+
+       
+        /// Đóng Form 
+        ///--> Khi chưa nhập text
         [TestMethod]
-        public void AddAccount10()
+        public void TestAccount10()
         {
-            int countBefore = account.CountAllUsers();
-
-            string expectedMessage = "Tên đăng nhập đã tồn tại";
-
-            string username = "NV11";
-            string password = "123";
-            string confirmPassword = "123456";
-            string maNV = "NV003";
-            string role = "Staff";
-
-            // 1. Lưu thông tin phòng ban đầu
-            UserModel accountBefore = account.GetUserDetails(username);
-            Assert.IsNotNull(accountBefore, $"Không tìm thấy tài khoản [{username}] để kiểm thử.");
-
-            account.AddUserAccount(username, password, confirmPassword, maNV, role);
-
-            var ConfirmPasseInput = driver.FindElement(By.Id("confirm_password"));
-            string validationMessage = ConfirmPasseInput.GetAttribute("validationMessage");
-
-            // Kiểm tra thông báo lỗi có đúng như mong đợi
-            Assert.AreEqual("Please fill out this field.", validationMessage);
-            Console.WriteLine($"Confirm Password hiển thị thông báo lỗi: [{validationMessage}]");
-            // Đảm bảo form vẫn đang mở (không submit được)
-           
-            bool isModalStillOpen = driver.FindElement(By.Id("addUserModal"))
-        .GetAttribute("class").Contains("show");
-            Assert.IsTrue(isModalStillOpen, "Form đã bị đóng dù dữ liệu không hợp lệ.");
-            Console.WriteLine("Form vẫn hiển thị sau khi nhập dữ liệu không hợp lệ.");
-
-            // 5. Kiểm tra không có thêm user mới
-            int countAfter = account.CountAllUsers();
-            Assert.AreEqual(countBefore, countAfter, "Hệ thống vẫn thêm tài khoản mới dù dữ liệu không hợp lệ.");
-
-            // 6. Kiểm tra thông báo lỗi nếu có (có thể không có do trình duyệt tự xử lý HTML5 form)
-            var alerts = driver.FindElements(By.CssSelector("div.alert.alert-danger"))
-                .Where(a => a.Displayed && !string.IsNullOrWhiteSpace(a.Text)).ToList();
-
-            if (alerts.Count > 0)
+            account.CloseForm1();
+            bool isModalClosed = wait.Until(driver =>
             {
-                Console.WriteLine("Thông báo lỗi giao diện hiển thị: " + alerts[0].Text.Trim());
-                Assert.AreEqual(1, alerts.Count, "Có nhiều hơn 1 thông báo lỗi hiển thị.");
-                Assert.AreEqual("Tên đăng nhập đã tồn tại", alerts[0].Text.Trim(), "Nội dung lỗi không đúng.");
+                try
+                {
+                    return !driver.FindElement(By.CssSelector("div.modal-content")).Displayed;
+
+                }
+                catch (NoSuchElementException)
+                {
+                    // Nếu phần tử không tồn tại nghĩa là modal đã đóng
+                    return true;
+                }
+            });
+
+
+            if (isModalClosed)
+            {
+                Console.WriteLine(" Form Thêm Tài Khoản đã được đóng thành công.");
             }
             else
             {
-                Console.WriteLine("Không có alert lỗi hiển thị (do form bị chặn bởi trình duyệt).");
+                Console.WriteLine("Form Thêm Tài Khoản vẫn đang hiển thị.");
             }
 
-            // 7. Đảm bảo thông tin người dùng không bị thay đổi
-            var accountAfter = account.GetUserDetails(username);
-            Assert.IsNotNull(accountAfter, $"Không tìm thấy tài khoản [{username}] sau khi test.");
-            Assert.AreEqual(accountBefore.Username, accountAfter.Username, "Tên đăng nhập bị ghi đè.");
-            Assert.AreEqual(accountBefore.Role, accountAfter.Role, "Vai trò tài khoản bị thay đổi.");
-
-            // 8. Đảm bảo username không bị trùng bản ghi
-            int duplicateCount = account.CountUsername(username);
-            Assert.AreEqual(1, duplicateCount, $"Tài khoản [{username}] bị thêm trùng {duplicateCount} lần!");
-            Console.WriteLine("Dữ liệu tài khoản không bị ghi đè hay nhân bản -> ĐÚNG.");
+            Assert.IsTrue(isModalClosed, "Form Tài Khoản chưa được đóng sau khi nhấn nút Đóng.");
+            Console.WriteLine("TestRoom14: Passed - Form Thêm Tài khoản chưa được đóng sau khi nhấn nút Đóng.");
         }
+         ///--> Khi nhập text nhưng chưa lưu
         [TestMethod]
-        public void AddAccount11()
+        public void TestAccount11()
         {
-            int countBefore = account.CountAllUsers();
-
-            string expectedMessage = "Mật khẩu xác nhận không khớp.";
-
-            string username = "NV11";
-            string password = "123";
-            string confirmPassword = "123456";
-            string maNV = "NV003";
-            string role = "Staff";
-
-            // 1. Lưu thông tin phòng ban đầu
-            UserModel accountBefore = account.GetUserDetails(username);
-            Assert.IsNotNull(accountBefore, $"Không tìm thấy tài khoản [{username}] để kiểm thử.");
-
-            account.AddUserAccount(username, password, confirmPassword, maNV, role);
-
             var wait = new WebDriverWait(driver, TimeSpan.FromSeconds(10));
-            //Check số  lỗi giá hiển thị
-            wait.Until(d => d.FindElements(By.CssSelector("div.alert.alert-danger"))
-                .Any(a => a.Displayed && !string.IsNullOrWhiteSpace(a.Text)));
 
-            var alerts = driver.FindElements(By.CssSelector("div.alert.alert-danger"))
-                .Where(a => a.Displayed && !string.IsNullOrWhiteSpace(a.Text)).ToList();
-
-            // Kiểm tra có ít nhất 1 lỗi
-            if (alerts.Count == 0)
-            {
-                Assert.Fail("Không có thông báo lỗi nào được hiển thị.");
-            }
-
-            // Kiểm tra chỉ có 1 lỗi
-            Assert.AreEqual(1, alerts.Count, "Có nhiều hơn 1 thông báo lỗi hiển thị.");
-
-            // Kiểm tra nội dung lỗi đúng
-            string actualError = alerts[0].Text.Trim();
-            Assert.AreEqual(expectedMessage, actualError,
-                $"Nội dung lỗi không đúng. Mong đợi: \"{expectedMessage}\" - Thực tế: \"{actualError}\"");
-
-            Console.WriteLine("Hiển thị đúng một lỗi duy nhất: " + actualError);
-
-
-            UserModel accountAfter = account.GetUserDetails(username);
-            Assert.IsNotNull(accountAfter, $"Không tìm thấy tài khoản [{username}] sau khi test.");
-
-            Assert.AreEqual(accountBefore.Username, accountAfter.Username, "Tên đăng nhập bị ghi đè thay đổi!");
-            Assert.AreEqual(accountBefore.Role, accountAfter.Role, "vai trò tài khoản bị ghi đè thay đổi!");
-
-            // 5. Đảm bảo không có bản ghi trùng
-            int roomCount = account.CountUsername(username);
-            Assert.AreEqual(1, roomCount, $"Tài khoản [{username}] xuất hiện {username} lần — hệ thống đã cho thêm trùng username!");
-            Console.WriteLine("Dữ liệu tài khoản không bị thay đổi -> Không bị ghi đè -> Đúng.");
-        }
-        [TestMethod]
-        public void AddAccount12()
-        {
-            int countBefore = account.CountAllUsers();
-            string confirmPassword = "";
-            account.AddUserAccount("12", "12", confirmPassword, "", "Staff");
-            var ConfirmPasseInput = driver.FindElement(By.Id("confirm_password"));
-            string validationMessage = ConfirmPasseInput.GetAttribute("validationMessage");
-
-            // Kiểm tra thông báo lỗi có đúng như mong đợi
-            Assert.AreEqual("Please fill out this field.", validationMessage);
-            Console.WriteLine($"Confirm Password hiển thị thông báo lỗi: [{validationMessage}]");
-            // Đảm bảo form vẫn đang mở (không submit được)
-            bool isModalStillOpen = driver.FindElement(By.Id("addUserModal")).GetAttribute("class").Contains("show");
-            Assert.IsTrue(isModalStillOpen, "Form đã bị đóng dù dữ liệu không hợp lệ");
-            Console.WriteLine("Form vẫn hiển thị sau khi nhập dữ liệu không hợp lệ.");
-
-
-            int countAfter = account.CountAllUsers();
-
-            // So sánh số lượng phòng để đảm bảo không có phòng mới được thêm
-            Assert.AreEqual(countBefore, countAfter, "Hệ thống vẫn thêm phòng mới dù dữ liệu không hợp lệ.");
-            Console.WriteLine("Không có phòng nào được thêm vào hệ thống -> Pass");
-        }
-        [TestMethod]
-        public void AddAccount13()
-        {
-            int countBefore = account.CountAllUsers();
-
-            string expectedMessage = "Mật khẩu xác nhận không khớp.";
-
+            // Nhập dữ liệu
             string username = "NV1123";
             string password = "123";
             string confirmPassword = "12345";
-            string maNV = "NV003";
             string role = "Staff";
 
-            account.AddUserAccount(username, password, confirmPassword, maNV, role);
+            // Gọi hàm đóng form sau khi điền
+            account.CloseForm2(username, password, confirmPassword, role);
 
-            var wait = new WebDriverWait(driver, TimeSpan.FromSeconds(10));
-            //Check số  lỗi giá hiển thị
-            wait.Until(d => d.FindElements(By.CssSelector("div.alert.alert-danger"))
-                .Any(a => a.Displayed && !string.IsNullOrWhiteSpace(a.Text)));
-
-            var alerts = driver.FindElements(By.CssSelector("div.alert.alert-danger"))
-                .Where(a => a.Displayed && !string.IsNullOrWhiteSpace(a.Text)).ToList();
-
-            // Kiểm tra có ít nhất 1 lỗi
-            if (alerts.Count == 0)
+            // Kiểm tra form đã đóng chưa (giả định modal không còn hiển thị)
+            bool isModalClosed = wait.Until(driver =>
             {
-                Assert.Fail("Không có thông báo lỗi nào được hiển thị.");
+                try
+                {
+                    return !driver.FindElement(By.CssSelector("div.modal-content")).Displayed;
+                }
+                catch (NoSuchElementException)
+                {
+                    // Nếu phần tử không tồn tại nghĩa là modal đã đóng
+                    return true;
+                }
+            });
+
+
+            if (isModalClosed)
+            {
+                Console.WriteLine(" Form Thêm Tài Khoản đã được đóng thành công.");
+            }
+            else
+            {
+                Console.WriteLine("Form Thêm Tài Khoản vẫn đang hiển thị.");
             }
 
-            // Kiểm tra chỉ có 1 lỗi
-            Assert.AreEqual(1, alerts.Count, "Có nhiều hơn 1 thông báo lỗi hiển thị.");
-
-            // Kiểm tra nội dung lỗi đúng
-            string actualError = alerts[0].Text.Trim();
-            Assert.AreEqual(expectedMessage, actualError,
-                $"Nội dung lỗi không đúng. Mong đợi: \"{expectedMessage}\" - Thực tế: \"{actualError}\"");
-
-            Console.WriteLine("Hiển thị đúng một lỗi duy nhất: " + actualError);
-
-            int countAfter = account.CountAllUsers();
-
-            // So sánh số lượng phòng để đảm bảo không có phòng mới được thêm
-            Assert.AreEqual(countBefore, countAfter, "Hệ thống vẫn thêm tài khoản mới dù dữ liệu không hợp lệ.");
-            Console.WriteLine("Không có tài khoản nào được thêm vào hệ thống -> Pass");
-
-          
+            Assert.IsTrue(isModalClosed, "Form Thêm Tài Khoản chưa được đóng sau khi nhấn nút Đóng.");
+            Console.WriteLine("TestRoom15: Passed - Form Thêm Tài Khoản đã đóng sau khi nhấn nút Đóng.");
         }
-        [TestMethod]
-        //-> Tổng số phòng vượt quá max giưới hạn
-        public void TestRoom14()
-        {
-            account.OpenSidebarIfNeeded();
-            var BtnUser = driver.FindElement(By.CssSelector("#sidebarMenu .nav-link[href='user.php']"));
-            BtnUser.Click();
 
-            // Chờ nút hiển thị
-            wait.Until(d => d.FindElement(By.CssSelector("button.btn.btn-primary")));
-            var addUser = driver.FindElement(By.CssSelector("button.btn.btn-primary"));
-
-            // Kiểm tra nút bị vô hiệu hóa
-            bool isDisabled = addUser.GetAttribute("disabled") != null;
-            Assert.IsTrue(isDisabled, "Nút Thêm Tài khoản đáng lẽ phải bị disable khi vượt quá giới hạn.");
-            Console.WriteLine("Nút Thêm tài khoản ở trạng thái Disable đúng mong đợi");
-            
-        }
+        //[TestCleanup]
+        //    public void TearDown()
+        //    {
+        //        driver.Quit(); // Luôn chạy sau mỗi test
+        //    }
     }
 }

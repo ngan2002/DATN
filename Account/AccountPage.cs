@@ -45,9 +45,6 @@ namespace DATN.Account
         private By ConfirmPassInputLocator => By.Id("confirm_password");
         private IWebElement TxtConfirmPass => driver.FindElement(ConfirmPassInputLocator);
 
-        private By NVSelectLocator => By.Id("maNV");
-        private IWebElement SelectNV => driver.FindElement(NVSelectLocator);
-
         private By RoleSelectLocator => By.Id("role");
         private IWebElement SelectRole => driver.FindElement(RoleSelectLocator);
 
@@ -92,7 +89,7 @@ namespace DATN.Account
         /// Thêm Tài khoản mới
         /// </summary>
 
-        public void AddUserAccount(string username, string password, string confirmPassword, string maNV, string role)
+        public void AddUserAccount(string username, string password, string confirmPassword, string role)
         {
             OpenAddUserSection();
 
@@ -105,14 +102,9 @@ namespace DATN.Account
             TxtConfirmPass.Clear();
             TxtConfirmPass.SendKeys(confirmPassword);
 
-            // Chọn nhân viên
-            new SelectElement(SelectNV).SelectByValue(maNV); // "" nếu để trống
-
-            // Chọn quyền: theo value hoặc text tùy thuộc biến truyền vào
-            new SelectElement(SelectRole).SelectByValue(role.ToLower()); // dùng "staff", "admin"
-                                                                        
-
-            BtnSubmitAddUser.Click();
+            new SelectElement(SelectRole).SelectByValue(role.ToLower()); 
+                                                                       
+           BtnSubmitAddUser.Click();
         }
 
         /// <summary>
@@ -130,7 +122,7 @@ namespace DATN.Account
                 foreach (var row in rows)
                 {
                     var cells = row.FindElements(By.TagName("td"));
-                    if (cells.Count >= 5)
+                    if (cells.Count >= 4)
                     {
                         string currentUsername = cells[0].Text.Trim(); // Username nằm ở cột đầu tiên
                         if (currentUsername.Equals(username, StringComparison.OrdinalIgnoreCase))
@@ -240,10 +232,10 @@ namespace DATN.Account
         public class UserModel
         {
             public string Username { get; set; }
-            public string FullName { get; set; }
             public string Role { get; set; }
-            //public string CreatedDate { get; set; }
+            public DateTime CreatedDate { get; set; }
         }
+
         public UserModel GetUserDetails(string username)
         {
             var row = FindUserRowByUsername(username);
@@ -254,15 +246,23 @@ namespace DATN.Account
             if (cells.Count < 4)
                 return null;
 
+            DateTime createdDate;
+            DateTime.TryParseExact(
+                cells[3].Text.Trim(),
+                "dd/MM/yyyy HH:mm",
+                CultureInfo.InvariantCulture,
+                DateTimeStyles.None,
+                out createdDate
+            );
+
             return new UserModel
             {
                 Username = cells[0].Text.Trim(),
-                FullName = cells[1].Text.Trim(),
-                Role = cells[2].Text.Trim(),
-                
-                // Nếu cần xử lý thêm cột thao tác (vd: nút Xóa), có thể thêm ở đây
+                Role = cells[1].Text.Trim(),
+                CreatedDate = createdDate
             };
         }
+
 
         public int CountAllUsers()
         {
@@ -335,34 +335,30 @@ namespace DATN.Account
 
             return totalCount;
         }
+        public void CloseForm1()
+        {
 
-        // Modal sửa tài khoản
-        private By EditUserModalLocator => By.Id("editUserModal");
-        private IWebElement EditUserModal => driver.FindElement(EditUserModalLocator);
+            OpenAddUserSection();
 
-        // Input: Tên đăng nhập
-        private By EditUsernameLocator => By.Id("edit_username");
-        private IWebElement TxtEditUsername => driver.FindElement(EditUsernameLocator);
+            BtnCloseModal.Click();
+        }
+        public void CloseForm2(string username, string password, string confirmPassword, string role)
+        {
+            OpenAddUserSection();
 
-        // Input: Mật khẩu (trống nếu không đổi)
-        private By EditPasswordLocator => By.Id("edit_password");
-        private IWebElement TxtEditPassword => driver.FindElement(EditPasswordLocator);
+            TxtUser.Clear();
+            TxtUser.SendKeys(username);
 
-        // Select: Nhân viên
-        private By EditMaNVLocator => By.Id("edit_maNV");
-        private IWebElement SelectEditMaNV => driver.FindElement(EditMaNVLocator);
+            TxtPass.Clear();
+            TxtPass.SendKeys(password);
 
-        // Select: Vai trò
-        private By EditRoleLocator => By.Id("edit_role");
-        private IWebElement SelectEditRole => driver.FindElement(EditRoleLocator);
+            TxtConfirmPass.Clear();
+            TxtConfirmPass.SendKeys(confirmPassword);
+            new SelectElement(SelectRole).SelectByValue(role.ToLower()); 
 
-        // Button: Lưu thay đổi
-        private By BtnSubmitEditLocator => By.CssSelector("button[type='submit'][name='update_user']");
-        private IWebElement BtnSubmitEdit => driver.FindElement(BtnSubmitEditLocator);
+            BtnCloseModal.Click();
+        }
 
-        // Button: Đóng modal
-        private By BtnCloseEditModalLocator => By.CssSelector("button.btn.btn-secondary[data-bs-dismiss='modal']");
-        private IWebElement BtnCloseEditModal => driver.FindElement(BtnCloseEditModalLocator);
 
     }
 }
