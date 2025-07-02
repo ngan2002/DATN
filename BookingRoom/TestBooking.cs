@@ -1,4 +1,4 @@
-﻿using DATN.Rooms;
+using DATN.Rooms;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using OpenQA.Selenium.Chrome;
 using OpenQA.Selenium.Support.UI;
@@ -32,20 +32,18 @@ namespace DATN.BookingRoom
             book = new BookingPage(driver);
         }
         [TestMethod]
-
         public void TestBooking1()
         {
-            // Thiết lập dữ liệu đầu vào
-            string cccd = "456789012345"; // CCCD khách có thật
-            List<string> roomNumbers = new List<string> { "201", "test12" }; // Số phòng
+           
+            string cccd = "111111111117";        // CCCD khách hàng đã có
+            string roomId = "245";               // ID phòng chọn
+            string roomNumber = "12";            // Số phòng để kiểm tra lại
+            DateTime checkIn = new DateTime(2025, 7, 18);
+            DateTime checkOut = new DateTime(2025, 7, 19);
+            int countBefore = book.CountAllBookings();
+            book.OpenAddBookingSection();
+            book.AddBooking(cccd, roomId, checkIn, checkOut, "cash");
 
-            DateTime checkInDate = DateTime.Today.AddDays(1);
-            DateTime checkOutDate = DateTime.Today.AddDays(3);
-
-            // Mở trang đặt phòng và thêm mới
-            book.AddBooking(cccd, roomNumbers, checkInDate, checkOutDate, paymentMethod: "cash");
-
-            // Xác minh thông báo thành công
             var successElement = wait.Until(driver =>
             {
                 try
@@ -59,26 +57,199 @@ namespace DATN.BookingRoom
                 }
             });
 
-            Assert.IsNotNull(successElement, "Không tìm thấy thông báo thành công.");
+            string successText = successElement.Text.Trim();
+            Assert.IsTrue(successText.Contains("Đặt phòng thành công!"), $"Nội dung thông báo không đúng: {successText}");
+            Console.WriteLine($"Thông báo: {successText}");
 
-            string expectedMessage = $"Đặt thành công {roomNumbers.Count} phòng.";
-            Assert.AreEqual(expectedMessage, successElement.Text.Trim(), "Thông báo thành công không đúng.");
-            Console.WriteLine("Thông báo thành công: " + successElement.Text.Trim());
+            bool exists = book.IsBookingExists(roomNumber, cccd, checkIn, checkOut);
+            Assert.IsTrue(exists, $"Không tìm thấy đơn đặt phòng [{roomNumber}] cho khách [{cccd}] từ {checkIn:dd/MM/yyyy} đến {checkOut:dd/MM/yyyy}.");
+            Console.WriteLine("Đặt phòng đã được tạo và hiển thị trong danh sách.");
 
-            // Kiểm tra từng phòng có xuất hiện đúng trong danh sách
-            foreach (var roomNumber in roomNumbers)
-            {
-                var found = book.IsBookingExists(
-                    roomNumber,
-                    cccd,
-                    checkInDate,
-                    checkOutDate
-                );
 
-                Assert.IsTrue(found, $"Không tìm thấy phòng [{roomNumber}] trong danh sách đặt phòng.");
-                Console.WriteLine($" Đã tìm thấy phòng [{roomNumber}] cho khách [{cccd}] từ {checkInDate:dd/MM/yyyy} đến {checkOutDate:dd/MM/yyyy}");
-            }
+            var details = book.GetBookingDetails(roomNumber, cccd, checkIn.ToString("dd/MM/yyyy"), checkOut.ToString("dd/MM/yyyy"));
+            Assert.IsNotNull(details, "Không lấy được thông tin chi tiết đặt phòng.");
+
+            Assert.AreEqual(cccd, details.CCCD, "CCCD không đúng.");
+            Assert.AreEqual(roomNumber, details.RoomNumber, "Số phòng không đúng.");
+            Assert.AreEqual("Standard", details.RoomType, "Loại phòng không đúng.");  // sửa nếu bạn test loại khác
+            Assert.AreEqual("15/07/2025", details.CheckInDate, "Ngày nhận không đúng.");
+            Assert.AreEqual("17/07/2025", details.CheckOutDate, "Ngày trả không đúng.");
+            Assert.AreEqual("Đã đặt", details.Status, "Trạng thái không đúng."); // tuỳ hệ thống
         }
+        [TestMethod]
+        public void TestBooking2()
+        {
+            string cccd = "";        // CCCD khách hàng đã có
+            string roomId = "245";               // ID phòng chọn
+            string roomNumber = "12";
+            int countBefore = book.CountAllBookings();// Số phòng để kiểm tra lại
+            DateTime checkIn = new DateTime(2025, 7, 15);
+            DateTime checkOut = new DateTime(2025, 7, 17);
+
+            book.OpenAddBookingSection();
+            book.AddBooking(cccd, roomId, checkIn, checkOut, "cash", expectError: true);
+
+
+
+            var message = driver.FindElement(By.Id("cccd")).GetAttribute("validationMessage");
+            Assert.IsTrue(message.Contains("Please select an item in the list."), "Không báo lỗi required ở trường khách hàng.");
+            // Kiểm tra form vẫn mở (modal chưa đóng lại)
+            bool isModalStillOpen = driver.FindElement(By.Id("addBookingModal")).GetAttribute("class").Contains("show");
+            Assert.IsTrue(isModalStillOpen, "Form đã bị đóng dù dữ liệu không hợp lệ");
+            Console.WriteLine("Form vẫn hiển thị sau khi nhập dữ liệu không hợp lệ.");
+
+            // Kiểm tra số lượng khách hàng không thay đổi
+            int countAfter = book.CountAllBookings();
+            Assert.AreEqual(countBefore, countAfter, "Hệ thống vẫn thêm khách hàng dù dữ liệu không hợp lệ.");
+            Console.WriteLine("Không có khách hàng nào được thêm vào hệ thống -> Pass");
+        }
+        [TestMethod]
+        public void TestBooking3()
+        {
+            string cccd = "111111111117";      // CCCD hợp lệ
+            string roomId = "245";             // ID phòng hợp lệ
+            string roomNumber = "12";
+            int countBefore = book.CountAllBookings();
+
+            DateTime? checkIn = null; // Bỏ trống ngày nhận
+            DateTime? checkOut = new DateTime(2025, 7, 17);
+
+            book.OpenAddBookingSection();
+            book.AddBooking(cccd, roomId, checkIn, checkOut, "cash", expectError: true);
+
+            // Kiểm tra hiển thị lỗi required
+            var message = driver.FindElement(By.Id("check_in")).GetAttribute("validationMessage");
+            Assert.IsTrue(message.Contains("Please fill out this field"), "Không báo lỗi required ở trường ngày nhận.");
+
+            // Kiểm tra form vẫn mở
+            bool isModalStillOpen = driver.FindElement(By.Id("addBookingModal")).GetAttribute("class").Contains("show");
+            Assert.IsTrue(isModalStillOpen, "Form đã bị đóng dù dữ liệu không hợp lệ");
+
+            // Kiểm tra không có dữ liệu mới được thêm
+            int countAfter = book.CountAllBookings();
+            Assert.AreEqual(countBefore, countAfter, "Hệ thống vẫn thêm dữ liệu dù thiếu ngày nhận");
+
+            Console.WriteLine("Trường hợp để trống ngày nhận -> Pass");
+        }
+
+        [TestMethod]
+        public void TestBooking4()
+        {
+            string cccd = "111111111117";      // CCCD hợp lệ
+            string roomId = "245";             // ID phòng hợp lệ
+            string roomNumber = "12";
+            int countBefore = book.CountAllBookings();
+
+            DateTime? checkIn = new DateTime(2025, 7, 17);  // Bỏ trống ngày nhận
+            DateTime? checkOut = null;
+
+            book.OpenAddBookingSection();
+            book.AddBooking(cccd, roomId, checkIn, checkOut, "cash", expectError: true);
+
+            // Kiểm tra hiển thị lỗi required
+            var message = driver.FindElement(By.Id("check_out")).GetAttribute("validationMessage");
+            Assert.IsTrue(message.Contains("Please fill out this field"), "Không báo lỗi required ở trường ngày nhận.");
+
+            // Kiểm tra form vẫn mở
+            bool isModalStillOpen = driver.FindElement(By.Id("addBookingModal")).GetAttribute("class").Contains("show");
+            Assert.IsTrue(isModalStillOpen, "Form đã bị đóng dù dữ liệu không hợp lệ");
+
+            // Kiểm tra không có dữ liệu mới được thêm
+            int countAfter = book.CountAllBookings();
+            Assert.AreEqual(countBefore, countAfter, "Hệ thống vẫn thêm dữ liệu dù thiếu ngày trả");
+
+            Console.WriteLine("Trường hợp để trống ngày trả -> Pass");
+        }
+        [TestMethod]
+        public void TestBooking5()
+        {
+            string cccd = "111111111117";        // CCCD khách hàng đã có
+            string roomId = "";               // ID phòng chọn
+            string roomNumber = "";
+            int countBefore = book.CountAllBookings();// Số phòng để kiểm tra lại
+            DateTime checkIn = new DateTime(2025, 3, 15);
+            DateTime checkOut = new DateTime(2025, 4, 17);
+
+            book.OpenAddBookingSection();
+            book.AddBooking(cccd, roomId, checkIn, checkOut, "cash", expectError: true);
+
+
+
+            var message = driver.FindElement(By.Id("room_id")).GetAttribute("validationMessage");
+            Assert.IsTrue(message.Contains("Please select an item in the list"), "Không báo lỗi required ở trường phòng.");
+            // Kiểm tra form vẫn mở (modal chưa đóng lại)
+            bool isModalStillOpen = driver.FindElement(By.Id("addBookingModal")).GetAttribute("class").Contains("show");
+            Assert.IsTrue(isModalStillOpen, "Form đã bị đóng dù dữ liệu không hợp lệ");
+            Console.WriteLine("Form vẫn hiển thị sau khi nhập dữ liệu không hợp lệ.");
+
+            // Kiểm tra số lượng khách hàng không thay đổi
+            int countAfter = book.CountAllBookings();
+            Assert.AreEqual(countBefore, countAfter, "Hệ thống vẫn thêm khách hàng dù dữ liệu không hợp lệ.");
+            Console.WriteLine("Không có khách hàng nào được thêm vào hệ thống -> Pass");
+        }
+        [TestMethod]
+        public void TestBooking6()
+        {
+            string cccd = "111111111117";        // CCCD khách hàng đã có
+            string roomId = "12";               // ID phòng chọn
+            string roomNumber = "1021";
+            int countBefore = book.CountAllBookings();// Số phòng để kiểm tra lại
+            DateTime checkIn = new DateTime(2025, 7, 16);
+            DateTime checkOut = new DateTime(2025, 7, 17);
+
+            book.OpenAddBookingSection();
+            book.AddBooking(cccd, roomId, checkIn, checkOut, "cash", expectError: true);
+            var successElement = wait.Until(driver =>
+            {
+                try
+                {
+                    var element = driver.FindElement(By.CssSelector("div.alert.alert-danger"));
+                    return element.Displayed ? element : null;
+                }
+                catch (NoSuchElementException)
+                {
+                    return null;
+                }
+            });
+
+            string successText = successElement.Text.Trim();
+            Assert.IsTrue(successText.Contains("Vui lòng nhập giá trị hợp lệ."), $"Nội dung thông báo không đúng: {successText}");
+            Console.WriteLine($"Thông báo: {successText}");
+
+        }
+        [TestMethod]
+        public void TestBooking7()
+        {
+            string cccd = "111111111117";        // CCCD khách hàng đã có
+            string roomId = "245";               // ID phòng chọn
+            string roomNumber = "12";
+            int countBefore = book.CountAllBookings();// Số phòng để kiểm tra lại
+            DateTime checkIn = new DateTime(2025, 7, 25);
+            DateTime checkOut = new DateTime(2025, 7, 27);
+
+            book.OpenAddBookingSection();
+            book.AddBooking(cccd, roomId, checkIn, checkOut, "cash", expectError: true);
+            var successElement = wait.Until(driver =>
+            {
+                try
+                {
+                    var element = driver.FindElement(By.CssSelector("div.alert.alert-danger"));
+                    return element.Displayed ? element : null;
+                }
+                catch (NoSuchElementException)
+                {
+                    return null;
+                }
+            });
+
+            string successText = successElement.Text.Trim();
+            Assert.IsTrue(successText.Contains("Phòng đã được đặt trong khoảng thời gian này"), $"Nội dung thông báo không đúng: {successText}");
+            Console.WriteLine($"Thông báo: {successText}");
+
+           ;
+
+        }
+
 
 
     }
